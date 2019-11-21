@@ -2,6 +2,7 @@ package org.agrsw.mavenreleaser;
 
 import org.agrsw.mavenreleaser.Artefact;
 import org.agrsw.mavenreleaser.Releaser;
+import org.agrsw.mavenreleaser.JiraClient;
 
 import org.slf4j.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -71,16 +72,7 @@ public class SVNChecker
             commitMessage = args[1];
         }
         
-      
-        
-       // boolean isAllowedUser = isUserAllowed(args[2]);
-       // if (!isAllowedUser){
-       // 	System.exit(0);
-       // }
-        
-
-        
-        final String[] projects = { "MERCURY", "BANORTE", "PRUEB", "SANESPBACK", "SANMEXICO","LIBERBANK", "SANGER", "SANCHILE", "TARIFARIO", "SANESP","SANCHILEBK","SANESPBCK2"};
+        final String[] projects = { "MERCURY", "BANORTE", "PRUEB", "SANESPBACK", "SANMEXICO","LIBERBANK", "SANGER", "SANCHILE", "TARIFARIO", "SANESP","SANCHILEBK","SANESPBCK2","WETRADE"};
         String issueKey = null;
         final SVNChecker fm = new SVNChecker();
         
