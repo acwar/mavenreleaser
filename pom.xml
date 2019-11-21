@@ -5,7 +5,7 @@
 
 	<groupId>org.agrsw.releaser</groupId>
 	<artifactId>mavenreleaser</artifactId>
-	<version>3.10.0-SNAPSHOT</version>
+	<version>3.13.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>mavenreleaser</name>
@@ -97,10 +97,10 @@
 		    <version>1.4</version>
 		</dependency>
 		<dependency>
--			<groupId>org.eclipse.jgit</groupId>
--			<artifactId>org.eclipse.jgit</artifactId>
--			<version>5.1.3.201810200350-r</version>
--		</dependency>
+			<groupId>org.eclipse.jgit</groupId>
+			<artifactId>org.eclipse.jgit</artifactId>
+			<version>5.1.3.201810200350-r</version>
+		</dependency>
 
 	
 	</dependencies>
