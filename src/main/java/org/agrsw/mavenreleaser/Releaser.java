@@ -464,10 +464,10 @@ public class Releaser implements CommandLineRunner
             else if (groupId.startsWith("com.mercurytfs.mercury.customers.bancosantander.spain.cloud")){
             	project = "SANESPBCK2";
             }
-            else if (groupId.startsWith("com.mercurytfs.mercury.customers.bancosantander.spain.cloud")){
+            else if (groupId.startsWith("com.mercurytfs.mercury.customers.bancosantander.spain.wetrade")){
             	project = "WETRADE";
             }
-            else if (groupId.startsWith("com.mercurytfs.mercury.customers.bancosantander.spain.cloud")){
+            else if (groupId.startsWith("com.mercury.mercurytfs.cloud")){
             	project = "SANGTS";
             }
             
