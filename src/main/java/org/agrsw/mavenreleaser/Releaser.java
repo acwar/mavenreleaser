@@ -403,6 +403,7 @@ public class Releaser implements CommandLineRunner
             else if (groupId.startsWith("com.mercury.mercurytfs.cloud")){
             	project = "SANGTS";
             }
+
             
         }
         return project;
