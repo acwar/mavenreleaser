@@ -1,38 +1,83 @@
 package org.agrsw.mavenreleaser;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.Console;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+
 import org.agrsw.mavenreleaser.dto.RepositoryDTO;
 import org.agrsw.mavenreleaser.exception.ReleaserException;
 import org.agrsw.mavenreleaser.factory.RepositoryFactory;
 import org.agrsw.mavenreleaser.repository.VersionControlRepository;
 import org.agrsw.mavenreleaser.util.RepositoryTypeEnum;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.boot.autoconfigure.*;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+import org.apache.maven.shared.invoker.DefaultInvocationRequest;
+import org.apache.maven.shared.invoker.DefaultInvoker;
+import org.apache.maven.shared.invoker.InvocationRequest;
+import org.apache.maven.shared.invoker.InvocationResult;
+import org.apache.maven.shared.invoker.Invoker;
+import org.apache.maven.shared.invoker.MavenInvocationException;
+import org.codehaus.plexus.util.IOUtil;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.jfrog.artifactory.client.Artifactory;
+import org.jfrog.artifactory.client.ArtifactoryClient;
+import org.jfrog.artifactory.client.model.RepoPath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.web.EmbeddedServletContainerAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration;
-import org.springframework.beans.factory.annotation.*;
-import org.slf4j.*;
-import org.codehaus.plexus.util.xml.pull.*;
-import org.apache.commons.cli.*;
-import org.springframework.boot.*;
-import org.tmatesoft.svn.core.io.*;
-import org.tmatesoft.svn.core.auth.*;
-import org.apache.maven.shared.invoker.*;
-import org.jfrog.artifactory.client.model.*;
-import org.jfrog.artifactory.client.*;
-import org.apache.maven.model.*;
-import org.tmatesoft.svn.core.internal.io.dav.*;
-import org.tmatesoft.svn.core.wc.*;
-
-
-
-import org.tmatesoft.svn.core.*;
-import org.apache.maven.model.io.xpp3.*;
-import org.codehaus.plexus.util.*;
-import java.io.*;
-import java.io.File;
-import java.util.*;
+import org.tmatesoft.svn.core.SVNDepth;
+import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNNodeKind;
+import org.tmatesoft.svn.core.SVNProperties;
+import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
+import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
+import org.tmatesoft.svn.core.io.SVNRepository;
+import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
+import org.tmatesoft.svn.core.wc.SVNCommitClient;
+import org.tmatesoft.svn.core.wc.SVNRevision;
+import org.tmatesoft.svn.core.wc.SVNUpdateClient;
+import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 @SpringBootApplication()
 @EnableAutoConfiguration(exclude={EmbeddedServletContainerAutoConfiguration.class,WebMvcAutoConfiguration.class})
@@ -751,7 +796,9 @@ public class Releaser implements CommandLineRunner
     }
     
     private static String getFilefromSVN(final String repositoryURL, String filePath) {
-        SVNRepository repository = null;
+    	log.debug("getFile:" + filePath +" fromSVN:"+repositoryURL);
+        
+    	SVNRepository repository = null;
         final String file = null;
         try {
             repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(repositoryURL));
@@ -832,7 +879,7 @@ public class Releaser implements CommandLineRunner
     				           
     	}
     	    	
-    	log.debug("getPomURL<-");
+    	log.debug("getPomURL<-"+url);
     	return url;
     	    	
     }
