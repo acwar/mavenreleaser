@@ -72,7 +72,7 @@ public class SVNChecker
             commitMessage = args[1];
         }
         
-        final String[] projects = { "MERCURY", "BANORTE", "PRUEB", "SANESPBACK", "SANMEXICO","LIBERBANK", "SANGER", "SANCHILE", "TARIFARIO", "SANESP","SANCHILEBK","SANESPBCK2","WETRADE"};
+        final String[] projects = { "MERCURY", "BANORTE", "PRUEB", "SANESPBACK", "SANMEXICO","LIBERBANK", "SANGER", "SANCHILE", "TARIFARIO", "SANESP","SANCHILEBK","SANESPBCK2","WETRADE","SANGTS"};
         String issueKey = null;
         final SVNChecker fm = new SVNChecker();
         
