@@ -106,8 +106,8 @@ public class Releaser implements CommandLineRunner
     private static boolean jiraIntegration;
     private static String repoURL;
     private JiraClient jiraClient;
-    public static String jiraUser ="";
-    public static String jiraPassword="";
+    public static String jiraUser ="admin1";
+    public static String jiraPassword="mer01cury.";
     public static RepositoryDTO repositoryDTO;
 
     @Autowired
@@ -821,11 +821,25 @@ public class Releaser implements CommandLineRunner
             return file;
         }
     }
-    
+    @Deprecated
     public static List<Artefact> getArtefactOfFile(final String repositoryURL, String[] files, final String jiraIssue) {
+    	return getArtefactOfFile(repositoryURL, files, jiraIssue, "SVN");
+    }
+    public static List<Artefact> getArtefactOfFile(final String repositoryURL, String[] files, final String jiraIssue, String repoType) {
 
         List<Artefact> artefacts = new ArrayList<>();
 
+        //As there is a Repo for every project we need to simply retrieve the project's pom
+        if ("GIT".equals(repoType)) {
+        	final String pom = GITClient.getResource(repositoryURL, "pom.xml");
+        	final Artefact artefact = getArtefactFromString(pom);
+            Artefact jiraArtefactOfFile = JiraClient.getIssueKey(getProject(artefact.getGroupId()), artefact.getArtefactId(), artefact.getVersion().substring(0, artefact.getVersion().indexOf("-SNAPSHOT")));
+            if(Objects.nonNull(jiraArtefactOfFile)) {
+                artefacts.add(jiraArtefactOfFile);
+            }
+            return artefacts;
+        }
+        
         for(String file: files) {
             if (file != null) {
                 final String[] splits = file.split("/src/main");
@@ -889,9 +903,12 @@ public class Releaser implements CommandLineRunner
     	return url;
     	    	
     }
-    
+    @Deprecated
     public static int checkCommit(final String[] svnFiles, final String issueKey) {
-        int result = 0;
+    	return checkCommit(svnFiles, issueKey, "SVN",Releaser.repoURL);
+    }  
+    public static int checkCommit(final String[] svnFiles, final String issueKey, String repoType, String repoURL) {
+    	int result = 0;
         Releaser.log.info("Get the jira issue by key: " + issueKey);
         String message = new String();
         final Artefact jiraIssueArtefact = JiraClient.getIssueByKey(issueKey, true);
@@ -903,7 +920,7 @@ public class Releaser implements CommandLineRunner
             result = 3;
         }
         else {
-            List<Artefact> jiraArtefactOfFile = getArtefactOfFile(Releaser.repoURL, svnFiles, issueKey);
+            List<Artefact> jiraArtefactOfFile = getArtefactOfFile(repoURL, svnFiles, issueKey,repoType);
                 if (CollectionUtils.isEmpty(jiraArtefactOfFile )) {
                 	message = "There is not a Jira Artefact for " + jiraArtefactOfFile;
                 	System.err.println(message);

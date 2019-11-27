@@ -1,29 +1,35 @@
 package org.agrsw.mavenreleaser;
 
-import org.agrsw.mavenreleaser.Artefact;
-import org.agrsw.mavenreleaser.Releaser;
-
-import org.slf4j.*;
-import org.springframework.beans.factory.annotation.Value;
-
 import java.io.IOException;
-import java.util.Properties;
-import java.util.regex.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.tmatesoft.svn.core.wc2.SvnAnnotate;
 
 public class SVNChecker
 {
     private static final Logger log;
     private Releaser releaser;
-    private String repositoryURL;
+    private String repositoryURL = "http://192.168.10.2/svn/mercury";
     private static int ERROR_WRONG_PARAMETERS;
     private static int ERROR_COMMIT_MESSAGE_FORMAT;
     private static int ERROR_SVN_FILE_HAS_NOT_OPEN_ARTEfACT_OR_DONT_EXIST;
     private static int ERROR_SVN_FILE_ARTEFACT_IS_NOT_LINKED_WITH_COMMIT_ISSUE;
     private static int ERROR_JIRA_ISSUE_IS_RESOLVED_CANNOT_COMMIT_TO_THIS_ISSUE;
+    
+    final String[] projects = { "MERCURY", "BANORTE", "PRUEB", "SANESPBACK", "SANMEXICO","LIBERBANK", "SANGER", "SANCHILE", "TARIFARIO", "SANESP","SANCHILEBK","SANESPBCK2","WETRADE","SANGTS"};
+    
     @Value("${notcheck.token}")
     private String notcheckTokenProperty;
     private static String notcheckToken ="#NOTCHECK";
+	private static String repoType = "SVN";
+    
     //java -cp mavenreleaser-3.0.0-SNAPSHOT.jar -Dloader.main=org.agrsw.mavenreleaser.SVNChecker    org.springframework.boot.loader.PropertiesLauncher
+    
     static {
         log = LoggerFactory.getLogger((Class)SVNChecker.class);
         SVNChecker.ERROR_WRONG_PARAMETERS = 1;
@@ -34,10 +40,7 @@ public class SVNChecker
     }
     
     public SVNChecker() {
-        this.repositoryURL = "http://192.168.10.2/svn/mercury";
-
 		notcheckTokenProperty = Releaser.getToken();
-		
     }
     
     public Artefact getArtefactOfFile(final String file) {
@@ -52,52 +55,48 @@ public class SVNChecker
     public static void main(final String[] args) {
         String[] svnFiles = null;
         String commitMessage = null;
+        String issueKey = null;
          
         if (args!=null){
         	for (int i=0;i<args.length;i++){
         		SVNChecker.log.info("ARGS[" + i +"] " + args[i]);
         	}
         	SVNChecker.log.info("ARGS: " + args.toString());
-        }
-        if (args.length != 3) {
-            SVNChecker.log.error("ERROR_WRONG_PARAMETERS");
-            System.exit(SVNChecker.ERROR_WRONG_PARAMETERS);
-        }
-        else {
-            SVNChecker.log.info("SVN Files: " + args[0]);
+        } 
+        
+        final SVNChecker fm = new SVNChecker();
+        SVNChecker.notcheckToken = fm.notcheckTokenProperty;
+        SVNChecker.log.info("Not Check Token: " + notcheckToken);
+        
+        if (args.length == 3) {
+        	SVNChecker.log.info("SVN Files: " + args[0]);
             SVNChecker.log.info("Commit Message: " + args[1]);
             SVNChecker.log.info("Usuario: " + args[2]);
             svnFiles = args[0].split(";");
             commitMessage = args[1];
+            
+        } else if (args.length == 5) {
+        	SVNChecker.log.info("SVN Files: " + args[0]);
+            SVNChecker.log.info("Commit Message: " + args[1]);
+            SVNChecker.log.info("Usuario (optional): " + args[2]);
+            SVNChecker.log.info("Repo Path: " + args[3]);
+            SVNChecker.log.info("Branch Name: " + args[4]);
+            svnFiles = args[0].split(";");
+            commitMessage = args[1];
+            fm.setRepositoryURL(args[3]);
+            repoType  = args[4].toUpperCase();
+            
+        }  else if (args.length == 4) {
+        	SVNChecker.log.info("GIT New Branch");
+            SVNChecker.log.info("Commit Message: " + args[0]);
+            commitMessage = args[0];
+            
+        } else {
+        	SVNChecker.log.error("ERROR_WRONG_PARAMETERS");
+            System.exit(SVNChecker.ERROR_WRONG_PARAMETERS);
         }
         
-      
-        
-       // boolean isAllowedUser = isUserAllowed(args[2]);
-       // if (!isAllowedUser){
-       // 	System.exit(0);
-       // }
-        
-
-        
-        final String[] projects = { "MERCURY", "BANORTE", "PRUEB", "SANESPBACK", "SANMEXICO","LIBERBANK", "SANGER", "SANCHILE", "TARIFARIO", "SANESP","SANCHILEBK","SANESPBCK2","WETRADE","SANGTS"};
-        String issueKey = null;
-        final SVNChecker fm = new SVNChecker();
-        
-        SVNChecker.notcheckToken = fm.notcheckTokenProperty;
-        SVNChecker.log.info("Not Check Toker: " + notcheckToken);
-        
-        boolean keyFound = false;
-        SVNChecker.log.info("Check if the commit message contains de jira issue key");
-        for (int i = 0; i < projects.length; ++i) {
-            issueKey = fm.checkCommitMessage(commitMessage, projects[i]);
-            SVNChecker.log.info("issueKey: " + issueKey);
-            if (issueKey != null) {
-                keyFound = true;
-                break;
-            }
-        }
-        if (keyFound) {
+        if ((issueKey=fm.isJiraCommit(commitMessage))!=null) {
             SVNChecker.log.info("jira issue key found");
             SVNChecker.log.info("Before call checkCommit");
             JiraClient.userName = Releaser.jiraUser;
@@ -105,7 +104,7 @@ public class SVNChecker
             Releaser.setUsername(Releaser.jiraUser);
             Releaser.setPassword(Releaser.jiraPassword);
             
-            final int result = Releaser.checkCommit(svnFiles, issueKey);
+            final int result = Releaser.checkCommit(svnFiles, issueKey,repoType,fm.repositoryURL);
             SVNChecker.log.info("After call checkCommit. Result: " + result);
             switch (result) {
                 case 0: {
@@ -122,9 +121,8 @@ public class SVNChecker
                     break;
                 }
             }
-        }
-        else {
-            SVNChecker.log.info("jira issue key not found. Checking if it`s a maven release plugin commit");
+        } else {
+            SVNChecker.log.info("Jira issue key not found. Checking if it`s a maven release plugin commit");
            
             issueKey = fm.checkCommitMessageWithOutNumber(commitMessage, "maven-release-plugin");
             if (issueKey==null){
@@ -142,7 +140,24 @@ public class SVNChecker
         }
     }
     
-    public String checkCommitMessage(final String commitMessage, final String projectName) {
+    private String isJiraCommit(String commitMessage) {
+        SVNChecker.log.info("Check if the commit message contains de jira issue key");
+        String issueKey;
+        
+        for (int i = 0; i < projects.length; ++i) {
+            if ((issueKey=checkCommitMessage(commitMessage, projects[i])) != null) {
+            	SVNChecker.log.info("issueKey: " + issueKey);
+                return issueKey;
+            }
+        }
+        return null;
+	}
+
+	private void setRepositoryURL(String string) {
+    	repositoryURL = string;
+	}
+
+	public String checkCommitMessage(final String commitMessage, final String projectName) {
         String key = null;
         final Pattern p = Pattern.compile(".*(" + projectName + "-[\\d]+).*", 2);
         final Matcher m = p.matcher(commitMessage);
@@ -175,13 +190,4 @@ public class SVNChecker
         this.releaser = releaser;
     }
     
-    private static boolean isUserAllowed(String user){
-    	boolean isAllowed = false;
-    	SVNChecker.log.debug("->  + isUserAllowed " + user);
-    	if (user.equals("alberto.garcia") || user.equals("alfonso.adiego") || user.equals("carlos.palacios")){
-    		isAllowed = true;
-    	}
-    	SVNChecker.log.debug("<-  + isUserAllowed " + isAllowed);
-    	return isAllowed;
-    }
 }
