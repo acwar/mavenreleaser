@@ -1,5 +1,6 @@
 package org.agrsw.mavenreleaser;
 
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.*;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.context.annotation.*;
@@ -9,13 +10,8 @@ import org.springframework.context.annotation.PropertySource;
 @PropertySource({ "classpath:config.properties" })
 public class Config
 {
-    @Value("${snapshots.repositories}")
-    String beanName;
-    @Autowired
-    Environment env;
-    
     @Bean
-    public String myBean() {
-        return "Test";
+    public static PropertySourcesPlaceholderConfigurer propertyConfigInDev() {
+        return new PropertySourcesPlaceholderConfigurer();
     }
 }

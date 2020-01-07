@@ -24,6 +24,13 @@ public class SVNChecker
     @Value("${notcheck.token}")
     private String notcheckTokenProperty;
     private static String notcheckToken ="#NOTCHECK";
+
+    @Value("${jira.user}")
+    public static String jiraUser ="";
+
+    @Value("${jira.password}")
+    public static String jiraPassword="";
+
     //java -cp mavenreleaser-3.0.0-SNAPSHOT.jar -Dloader.main=org.agrsw.mavenreleaser.SVNChecker    org.springframework.boot.loader.PropertiesLauncher
     static {
         log = LoggerFactory.getLogger((Class)SVNChecker.class);
@@ -37,7 +44,7 @@ public class SVNChecker
     public SVNChecker() {
         this.repositoryURL = "http://192.168.10.2/svn/mercury";
 
-		notcheckTokenProperty = Releaser.getToken();
+//		notcheckTokenProperty = Releaser.getToken();
 		
     }
     
@@ -92,28 +99,28 @@ public class SVNChecker
         if (keyFound) {
             SVNChecker.log.info("jira issue key found");
             SVNChecker.log.info("Before call checkCommit");
-            JiraClient.userName = Releaser.jiraUser;
-            JiraClient.password = Releaser.jiraPassword;
-            Releaser.setUsername(Releaser.jiraUser);
-            Releaser.setPassword(Releaser.jiraPassword);
+            JiraClient.userName = jiraUser;
+            JiraClient.password = jiraPassword;
+//            Releaser.setUsername(jiraUser);
+//            Releaser.setPassword(jiraPassword);
             
-            final int result = Releaser.checkCommit(svnFiles, issueKey);
-            SVNChecker.log.info("After call checkCommit. Result: " + result);
-            switch (result) {
-                case 0: {
-                    System.exit(0);
-                }
-                case 1: {
-                    System.exit(SVNChecker.ERROR_SVN_FILE_HAS_NOT_OPEN_ARTEfACT_OR_DONT_EXIST);
-                }
-                case 2: {
-                    System.exit(SVNChecker.ERROR_SVN_FILE_ARTEFACT_IS_NOT_LINKED_WITH_COMMIT_ISSUE);
-                }
-                case 3: {
-                    System.exit(SVNChecker.ERROR_JIRA_ISSUE_IS_RESOLVED_CANNOT_COMMIT_TO_THIS_ISSUE);
-                    break;
-                }
-            }
+//            final int result = Releaser.checkCommit(svnFiles, issueKey);
+//            SVNChecker.log.info("After call checkCommit. Result: " + result);
+//            switch (result) {
+//                case 0: {
+//                    System.exit(0);
+//                }
+//                case 1: {
+//                    System.exit(SVNChecker.ERROR_SVN_FILE_HAS_NOT_OPEN_ARTEfACT_OR_DONT_EXIST);
+//                }
+//                case 2: {
+//                    System.exit(SVNChecker.ERROR_SVN_FILE_ARTEFACT_IS_NOT_LINKED_WITH_COMMIT_ISSUE);
+//                }
+//                case 3: {
+//                    System.exit(SVNChecker.ERROR_JIRA_ISSUE_IS_RESOLVED_CANNOT_COMMIT_TO_THIS_ISSUE);
+//                    break;
+//                }
+//            }
         }
         else {
             SVNChecker.log.info("jira issue key not found. Checking if it`s a maven release plugin commit");
