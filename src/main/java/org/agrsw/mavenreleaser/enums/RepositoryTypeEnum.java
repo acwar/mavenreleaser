@@ -1,4 +1,4 @@
-package org.agrsw.mavenreleaser.util;
+package org.agrsw.mavenreleaser.enums;
 
 public enum RepositoryTypeEnum {
 

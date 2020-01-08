@@ -30,48 +30,7 @@ public class JiraClient
         JiraClient.port = 8080;
     }
     
-      /*public static void main(final String[] args) {
-    	   
-    	     String jiraUser ="XXXX";
-    	    String jiraPassword="XXX.";
-    	    JiraClient.setUserName(jiraUser);
-    	    JiraClient.setPassword(jiraPassword);    	  
-    	    JiraClient.createVersion("MERCURY","borrame36", "version para borrar");
-       }
-    	   /*        final String desc = "Santander ES Products Layer - Loans Business **  ** *JENKINS:* ** http://192.168.10.4:8082/view/Branches/job/Loans%20Business%201.24.X/ **  ** *SVN BRANCH:* ** http://192.168.10.2/svn/mercury/branches/development/customers/bancosantander/spain/santandercomex/branches/products/loans/business/loans.business-1.24.X **  ** *SVN TAG:* ** http://192.168.10.2/svn/mercury/tags/releases/customers/bancosantander/spain/santandercomex/products/loans/business";
-        final Artefact art = getIssueByKey("BANORTE-2966", false);
-        createIssue("SANESPBACK", "loans.business-comex-1.24.34", desc, "loans.business-comex", "1.24.33", "1.84.34");
-        closeIssue("MERCURY-11660");
-        final HttpHost host = new HttpHost(JiraClient.hostName, JiraClient.port, "http");
-        final ClientHttpRequestFactory requestFactory = (ClientHttpRequestFactory)new HttpComponentsClientHttpRequestFactoryBasicAuth(host);
-        final RestTemplate restTemplate = new RestTemplate(requestFactory);
-        restTemplate.getInterceptors().add(new BasicAuthorizationInterceptor(JiraClient.userName, JiraClient.password));
-        final ResponseEntity<Object> obj = (ResponseEntity<Object>)restTemplate.exchange(String.valueOf(JiraClient.jiraURL) + "search?jql=project=MERCURY AND issuetype = \"Artefacto Maven\" AND component=test  AND fixVersion = 1.0.0 AND status in (Open, \"In Progress\", Reopened)", HttpMethod.GET, (HttpEntity)null, (Class)Object.class, new Object[0]);
-        HashMap map = (HashMap)obj.getBody();
-        final ArrayList issues = (ArrayList) map.get("issues");
-        final Map issue = (Map) issues.get(0);
-        final Map fields = (Map) issue.get("fields");
-        final String key = (String) issue.get("key");
-        final ResponseEntity<Object> obj2 = (ResponseEntity<Object>)restTemplate.exchange("http://jira.mercury-tfs.com/rest/api/2/issue/MERCURY-11660/transitions", HttpMethod.GET, (HttpEntity)null, (Class)Object.class, new Object[0]);
-        map = (HashMap)obj2.getBody();
-        final ArrayList<Map> transitions = (ArrayList<Map>) map.get("transitions");
-        final String json = "{\"fields\": {\"assignee\":{\"name\":\"ernesto.acosta\"}}}";
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> entity = (HttpEntity<String>)new HttpEntity((Object)json, (MultiValueMap)headers);
-        final String jsonTransition = "{\"transition\": {\"id\": \"5\"}}";
-        headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        entity = (HttpEntity<String>)new HttpEntity((Object)jsonTransition, (MultiValueMap)headers);
-        final ResponseEntity<String> loginResponse = (ResponseEntity<String>)restTemplate.exchange(String.valueOf(JiraClient.jiraURL) + "issue/MERCURY-11660/transitions", HttpMethod.POST, (HttpEntity)entity, (Class)String.class, new Object[0]);
-        final JSONObject json2 = new JSONObject();
-        final String jsonCreate = "{\"fields\": {\"project\": {\"key\": \"MERCURY\"}, \"summary\": \"something's wrong\",\"issuetype\": {\"name\": \"Error\"}}}";
-        headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        entity = (HttpEntity<String>)new HttpEntity((Object)jsonCreate, (MultiValueMap)headers);
-        restTemplate.exchange("http://jira.mercury-tfs.com/rest/api/2/issue/", HttpMethod.POST, (HttpEntity)entity, (Class)String.class, new Object[0]);
-        System.out.println("");
-    }*/
+
     
     public static Artefact getIssueKey(final String project, final String component, final String version) {
         String key = null;

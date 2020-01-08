@@ -6,7 +6,7 @@ import org.agrsw.mavenreleaser.factory.RepositoryFactory;
 import org.agrsw.mavenreleaser.repository.VersionControlRepository;
 import org.agrsw.mavenreleaser.repository.impl.GitManagerImpl;
 import org.agrsw.mavenreleaser.repository.impl.SVNManagerImpl;
-import org.agrsw.mavenreleaser.util.RepositoryTypeEnum;
+import org.agrsw.mavenreleaser.enums.RepositoryTypeEnum;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;

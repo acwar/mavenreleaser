@@ -1,6 +1,6 @@
 package org.agrsw.mavenreleaser.dto;
 
-import org.agrsw.mavenreleaser.util.RepositoryTypeEnum;
+import org.agrsw.mavenreleaser.enums.RepositoryTypeEnum;
 
 public class RepositoryDTO {
 

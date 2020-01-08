@@ -39,7 +39,7 @@ public class Releaser implements CommandLineRunner {
     private final ArtifactoryHelper artifactoryHelper = new ArtifactoryHelper(this);
 
     @Value("${maven.home}")
-    private static String mavenHome;
+    private String mavenHome;
 
     @Value("${notcheck.token}")
     private String notCheckToken;
@@ -52,7 +52,10 @@ public class Releaser implements CommandLineRunner {
     private static Map<String, String> artefactsNotInArtifactory;
     private static Map<String, Artefact> jirasNotReleased;
     private static Map<String, Artefact> jirasReleased;
-    private static String tempDir;
+    
+    @Value("${tempDir:/tmp/svn/}")
+    private String tempDir;
+    
     private static String repoURL;
 //    private JiraClient jiraClient;
 
@@ -71,13 +74,11 @@ public class Releaser implements CommandLineRunner {
     private static VersionControlRepository versionControlRepository;
 
     static {
-        Releaser.mavenHome = "";
         Releaser.artefacts = new HashMap<String, String>();
         Releaser.artefactsAlreadyReleased = new HashMap<String, String>();
         Releaser.artefactsNotInArtifactory = new HashMap<String, String>();
         Releaser.jirasNotReleased = new HashMap<String, Artefact>();
         Releaser.jirasReleased = new HashMap<String, Artefact>();
-        Releaser.tempDir = "/tmp/svn/";
         Releaser.repoURL = "http://192.168.10.2/svn/mercury/";
     }
 
@@ -104,47 +105,18 @@ public class Releaser implements CommandLineRunner {
         }
         try {
             if (releaseArtifact.getAction().equals("release")) {
-
                 doRelease(releaseArtifact.getUrl(), String.valueOf(releaseArtifact.getArtefactName()) + "-" + System.currentTimeMillis());
-                log.info("######################## Artefactos encontrados:  ###################");
-                Collection<String> values = Releaser.artefacts.keySet();
-                for (final String artefact : values) {
-                    log.info(artefact);
-                }
-                log.info("######################## Artefactos que ya estaban releseados:  ###################");
-                values = Releaser.artefactsAlreadyReleased.keySet();
-                for (final String artefact : values) {
-                    log.info(artefact);
-                }
-                log.info("######################## Artefactos que no est\u00e1n en Artifactory (hacer clean deploy):  ###################");
-                values = Releaser.artefactsNotInArtifactory.keySet();
-                for (final String artefact : values) {
-                    log.info(artefact);
-                }
-                log.info("######################## Artefactos jiras que se procesaron correctamente  ###################");
-                Collection<Artefact> jiras = Releaser.jirasReleased.values();
-                for (final Artefact issue : jiras) {
-                    log.info(String.valueOf(issue.getGroupId()) + "-" + issue.getArtefactId() + "-" + issue.getJiraIssue());
-                }
-                log.info("######################## Artefactos jiras que NO se procesaron correctamente  ###################");
-                jiras = Releaser.jirasNotReleased.values();
-                for (final Artefact issue : jiras) {
-                    log.info(String.valueOf(issue.getGroupId()) + "-" + issue.getArtefactId());
-                }
+                logArtifacts("######################## Artefactos encontrados:  #############################################################", Releaser.artefacts.keySet());
+                logArtifacts("######################## Artefactos que ya estaban releseados:  ###############################################", Releaser.artefactsAlreadyReleased.keySet());
+                logArtifacts("######################## Artefactos que no est\u00e1n en Artifactory (hacer clean deploy):  ###################", Releaser.artefactsNotInArtifactory.keySet());
+                logArtifacts("######################## Artefactos jiras que se procesaron correctamente  ####################################", Releaser.jirasReleased.keySet());
+                logArtifacts("######################## Artefactos jiras que NO se procesaron correctamente  #################################", Releaser.jirasNotReleased.keySet());
             } else if (releaseArtifact.getAction().equals("prepare")) {
                 doPrepare(releaseArtifact.getUrl(), String.valueOf(releaseArtifact.getArtefactName()) + "-" + System.currentTimeMillis());
-                log.info("Artefactos encontrados: ");
-                final Collection<String> values = Releaser.artefacts.keySet();
-                for (final String artefact : values) {
-                    log.info(artefact);
-                }
+                logArtifacts("######################## Artefactos encontrados:  #############################################################", Releaser.artefacts.keySet());
             } else if (releaseArtifact.getAction().equals("sources")) {
                 doSources(releaseArtifact.getUrl(), String.valueOf(releaseArtifact.getArtefactName()) + "-" + System.currentTimeMillis());
-                log.info("Artefactos encontrados: ");
-                final Collection<String> values = Releaser.artefacts.keySet();
-                for (final String artefact : values) {
-                    log.info(artefact);
-                }
+                logArtifacts("######################## Artefactos encontrados:  #############################################################", Releaser.artefacts.keySet());
             }
         } catch (FileNotFoundException e2) {
             e2.printStackTrace();
@@ -156,7 +128,12 @@ public class Releaser implements CommandLineRunner {
             e5.printStackTrace();
         }
     }
-
+    private void logArtifacts(String mensaje,Collection<String> values){
+        log.info(mensaje);
+        for (String artefact : values) {
+            log.info(artefact);
+        }
+    }
     private ReleaseArtifact interpretReleaseArtifact(CommandLine cmd) throws ParseException {
         ReleaseArtifact tempreleaseArtifact = new ReleaseArtifact();
         tempreleaseArtifact.setUsername((String) cmd.getParsedOptionValue("username"));
@@ -224,29 +201,29 @@ public class Releaser implements CommandLineRunner {
         return exists;
     }
 
-    private void doRelease(final String url, final String artefactName) throws FileNotFoundException, IOException, XmlPullParserException, MavenInvocationException {
-        final String path = String.valueOf(Releaser.tempDir) + artefactName;
+    private void doRelease(final String url, final String artefactName) throws IOException, XmlPullParserException, MavenInvocationException {
+        final String path = tempDir + artefactName;
         log.info("--> #################### Release Started for Artefact " + artefactName);
         downloadProject(url, new File(path));
-        log.info("Artefact Info :" + getArtifactInfo(String.valueOf(path) + "/pom.xml"));
-        processPomRelease(String.valueOf(path) + "/pom.xml");
-        mavenInvoker(String.valueOf(path) + "/pom.xml");
+        log.info("Artefact Info :" + getArtifactInfo(path + "/pom.xml"));
+        processPomRelease(path + "/pom.xml");
+        mavenInvoker(path + "/pom.xml");
         log.info("<-- #################### Release Finished for Artefact " + artefactName);
     }
 
-    private void doPrepare(final String url, final String artefactName) throws FileNotFoundException, IOException, XmlPullParserException, MavenInvocationException {
-        final String path = String.valueOf(Releaser.tempDir) + artefactName;
+    private void doPrepare(final String url, final String artefactName) throws IOException, XmlPullParserException, MavenInvocationException {
+        final String path = tempDir + artefactName;
         log.info("--> ######## Prepare Started for Artefact " + artefactName);
         downloadProject(url, new File(path));
-        processPomPrepare(String.valueOf(path) + "/pom.xml");
+        processPomPrepare(path + "/pom.xml");
         log.info("<-- ######## Prepare Finished for Artefact " + artefactName);
     }
 
-    private void doSources(final String url, final String artefactName) throws FileNotFoundException, IOException, XmlPullParserException, MavenInvocationException {
-        final String path = String.valueOf(Releaser.tempDir) + artefactName;
+    private void doSources(final String url, final String artefactName) throws IOException, XmlPullParserException, MavenInvocationException {
+        final String path = tempDir + artefactName;
         log.info("--> ######## Prepare Started for Artefact " + artefactName);
         downloadProject(url, new File(path));
-        processPomSources(String.valueOf(path) + "/pom.xml");
+        processPomSources(path + "/pom.xml");
         log.info("<-- ######## Prepare Finished for Artefact " + artefactName);
     }
 
