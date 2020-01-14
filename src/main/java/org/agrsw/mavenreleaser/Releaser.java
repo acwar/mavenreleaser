@@ -3,6 +3,7 @@ package org.agrsw.mavenreleaser;
 import lombok.Getter;
 import org.agrsw.mavenreleaser.beans.ReleaseArtifact;
 import org.agrsw.mavenreleaser.enums.ProjectsEnum;
+import org.agrsw.mavenreleaser.helpers.ArtifactoryHelper;
 import org.springframework.boot.autoconfigure.*;
 import org.springframework.boot.autoconfigure.web.EmbeddedServletContainerAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration;
@@ -36,7 +37,8 @@ public class Releaser implements CommandLineRunner {
     @Getter
     private Logger log = LoggerFactory.getLogger((Class) Releaser.class);
 
-    private final ArtifactoryHelper artifactoryHelper = new ArtifactoryHelper(this);
+    @Autowired
+    private ArtifactoryHelper artifactoryHelper;
 
     @Value("${maven.home}")
     private String mavenHome;
@@ -82,7 +84,6 @@ public class Releaser implements CommandLineRunner {
         Releaser.repoURL = "http://192.168.10.2/svn/mercury/";
     }
 
-
     public static void main(final String[] args) throws MavenInvocationException, FileNotFoundException, IOException, XmlPullParserException {
         SpringApplication.run((Object) Releaser.class, args);
     }
@@ -96,6 +97,7 @@ public class Releaser implements CommandLineRunner {
         try {
             final CommandLine cmd = new DefaultParser().parse(options, args);
             releaseArtifact = interpretReleaseArtifact(cmd);
+            artifactoryHelper.setReleaseArtifact(releaseArtifact);
             log.debug(cmd.toString());
         } catch (ParseException e1) {
             e1.printStackTrace();
@@ -257,7 +259,7 @@ public class Releaser implements CommandLineRunner {
 
         final Invoker invoker = (Invoker) new DefaultInvoker();
         invoker.setInputStream(System.in);
-        invoker.setMavenHome(new File(Releaser.mavenHome));
+        invoker.setMavenHome(new File(mavenHome));
         final InvocationResult result = invoker.execute(request);
         if (result.getExitCode() != 0) {
             throw new IllegalStateException("Build failed.");

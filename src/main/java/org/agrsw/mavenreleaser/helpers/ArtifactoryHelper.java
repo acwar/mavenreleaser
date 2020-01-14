@@ -1,27 +1,34 @@
-package org.agrsw.mavenreleaser;
+package org.agrsw.mavenreleaser.helpers;
 
+import lombok.Getter;
+import lombok.Setter;
+import org.agrsw.mavenreleaser.beans.ReleaseArtifact;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.jfrog.artifactory.client.Artifactory;
 import org.jfrog.artifactory.client.ArtifactoryClient;
 import org.jfrog.artifactory.client.model.RepoPath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+@Component
 public class ArtifactoryHelper {
-    private final Releaser releaser;
+    private Logger log = LoggerFactory.getLogger( this.getClass());
+    
 
-    public ArtifactoryHelper(Releaser releaser) {
-        this.releaser = releaser;
-    }
+    @Setter @Getter
+    private ReleaseArtifact releaseArtifact;
 
-    Model getArtifactFromArtifactory(final String groupId, final String artifactId, final String version, final boolean release) throws IOException, XmlPullParserException {
-        releaser.getLog().info("-->Searching artifact in artifactory");
+    public Model getArtifactFromArtifactory(final String groupId, final String artifactId, final String version, final boolean release) throws IOException, XmlPullParserException {
+        log.info("-->Searching artifact in artifactory");
         Model model = null;
-        final Artifactory artifactory = ArtifactoryClient.create("http://192.168.10.2:8081/artifactory/", releaser.getReleaseArtifact().getUsername(), releaser.getReleaseArtifact().getPassword());
+        final Artifactory artifactory = ArtifactoryClient.create("http://192.168.10.2:8081/artifactory/", getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());
         final String repoSnapshot1 = "libs-snapshot-local";
         final String repoSnapshot2 = "libs-snapshot-santander";
         final String repoRelease1 = "libs-release-santander";
@@ -42,7 +49,7 @@ public class ArtifactoryHelper {
             for (final RepoPath searchItem : results) {
                 itemPath = searchItem.getItemPath();
                 if (itemPath.endsWith(".pom")) {
-                    releaser.getLog().debug("Pom found");
+                    log.debug("Pom found");
                     iStream = artifactory.repository(searchItem.getRepoKey()).download(itemPath).doDownload();
                     final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
                     model = mavenreader.read(iStream);
@@ -50,15 +57,15 @@ public class ArtifactoryHelper {
             }
         }
         if (model == null) {
-            releaser.getLog().debug("Pom not found in artifactory");
+            log.debug("Pom not found in artifactory");
         }
-        releaser.getLog().info("<--Searching artifact in artifactory");
+        log.info("<--Searching artifact in artifactory");
         return model;
     }
 
-    InputStream getArtifactSourceArtifactory(final String groupId, final String artifactId, final String version, final boolean release) throws IOException, XmlPullParserException {
-        releaser.getLog().info("-->Searching artifact in artifactory");
-        final Artifactory artifactory = ArtifactoryClient.create("http://192.168.10.2:8081/artifactory/", releaser.getReleaseArtifact().getUsername(), releaser.getReleaseArtifact().getPassword());
+    public InputStream getArtifactSourceArtifactory(final String groupId, final String artifactId, final String version, final boolean release) throws IOException, XmlPullParserException {
+        log.info("-->Searching artifact in artifactory");
+        final Artifactory artifactory = ArtifactoryClient.create("http://192.168.10.2:8081/artifactory/", getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());
         final String repoSnapshot1 = "libs-snapshot-local";
         final String repoSnapshot2 = "libs-snapshot-santander";
         final String repoRelease1 = "libs-release-santander";
@@ -79,15 +86,15 @@ public class ArtifactoryHelper {
             for (final RepoPath searchItem : results) {
                 itemPath = searchItem.getItemPath();
                 if (itemPath.endsWith("sources.jar") || itemPath.endsWith(".war")) {
-                    releaser.getLog().debug("Source found");
+                    log.debug("Source found");
                     iStream = artifactory.repository(searchItem.getRepoKey()).download(itemPath).doDownload();
                 }
             }
         }
         if (iStream == null) {
-            releaser.getLog().debug("Source not found in artifactory");
+            log.debug("Source not found in artifactory");
         }
-        releaser.getLog().info("<--Searching artifact in artifactory");
+        log.info("<--Searching artifact in artifactory");
         return iStream;
     }
 }
