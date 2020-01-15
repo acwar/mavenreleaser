@@ -33,7 +33,7 @@ public class ArtifactoryHelper {
     }
 
     private Model getArtifactFromArtifactory(final String groupId, final String artifactId, final String version, final boolean release) throws IOException, XmlPullParserException {
-        log.info("-->Searching artifact in artifactory");
+        log.info("\tSearching artifact in artifactory");
         Model model = null;
         final Artifactory artifactory = ArtifactoryClient.create("http://192.168.10.2:8081/artifactory/", getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());
         final String repoSnapshot1 = "libs-snapshot-local";
@@ -56,7 +56,7 @@ public class ArtifactoryHelper {
             for (final RepoPath searchItem : results) {
                 itemPath = searchItem.getItemPath();
                 if (itemPath.endsWith(".pom")) {
-                    log.debug("Pom found");
+                    log.debug("\tPom found");
                     iStream = artifactory.repository(searchItem.getRepoKey()).download(itemPath).doDownload();
                     final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
                     model = mavenreader.read(iStream);
@@ -64,9 +64,9 @@ public class ArtifactoryHelper {
             }
         }
         if (model == null) {
-            log.debug("Pom not found in artifactory");
+            log.debug("\tPom not found in artifactory");
         }
-        log.info("<--Searching artifact in artifactory");
+        log.info("\tSearching artifact in artifactory");
         return model;
     }
 

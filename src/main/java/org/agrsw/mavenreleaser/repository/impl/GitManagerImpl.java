@@ -46,7 +46,6 @@ public class GitManagerImpl implements VersionControlRepository {
     @Override
     public boolean downloadProject(RepositoryDTO repositoryDTO, File target) throws ReleaserException {
         try {
-            LOGGER.info("--> Downloading from GIT " + repositoryDTO.getRemotePath());
             CredentialsProvider cp = new UsernamePasswordCredentialsProvider(repositoryDTO.getUserName(), repositoryDTO.getPassword());
 
             Git.cloneRepository()

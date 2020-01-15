@@ -49,7 +49,6 @@ public class SVNManagerImpl implements VersionControlRepository {
     }
 
     public boolean downloadProject(RepositoryDTO repositoryDTO, final File target) throws ReleaserException {
-       LOGGER.info("--> Downloading from SVN " + repositoryDTO.getRemotePath());
         DAVRepositoryFactory.setup();
         final SVNClientManager manager = SVNClientManager.newInstance();
         try {

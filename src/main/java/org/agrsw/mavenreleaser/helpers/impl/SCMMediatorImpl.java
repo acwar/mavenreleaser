@@ -26,12 +26,12 @@ public class SCMMediatorImpl implements SCMMediator {
 
     @Override
     public boolean downloadProject(String url, File target) throws ReleaserException {
-        log.info("Downloading from SCM %s", url);
+        log.info("Downloading from SCM {}", url);
 
         RepositoryDTO repositoryDTO  = new RepositoryDTO();
         repositoryDTO.setUserName(releaseArtifact.getUsername());
         repositoryDTO.setPassword(releaseArtifact.getPassword());
-        repositoryDTO.setRemotePath(releaseArtifact.getUrl());
+        repositoryDTO.setRemotePath(url.replaceAll("gitlabce.mercury-tfs.com","192.168.10.125"));
 
         if (isGit(url))
             repositoryDTO.setRepositoryType(RepositoryTypeEnum.GIT);
