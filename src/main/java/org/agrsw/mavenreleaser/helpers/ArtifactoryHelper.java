@@ -25,7 +25,14 @@ public class ArtifactoryHelper {
     @Setter @Getter
     private ReleaseArtifact releaseArtifact;
 
-    public Model getArtifactFromArtifactory(final String groupId, final String artifactId, final String version, final boolean release) throws IOException, XmlPullParserException {
+    public Model getReleasedArtifactFromArtifactory(final String groupId, final String artifactId, final String version) throws IOException, XmlPullParserException {
+        return getArtifactFromArtifactory(groupId, artifactId, version, true);
+    }
+    public Model getSnapshotArtifactFromArtifactory(final String groupId, final String artifactId, final String version) throws IOException, XmlPullParserException {
+        return getArtifactFromArtifactory(groupId, artifactId, version, false);
+    }
+
+    private Model getArtifactFromArtifactory(final String groupId, final String artifactId, final String version, final boolean release) throws IOException, XmlPullParserException {
         log.info("-->Searching artifact in artifactory");
         Model model = null;
         final Artifactory artifactory = ArtifactoryClient.create("http://192.168.10.2:8081/artifactory/", getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());

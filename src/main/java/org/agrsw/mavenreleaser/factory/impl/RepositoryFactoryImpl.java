@@ -1,6 +1,7 @@
 package org.agrsw.mavenreleaser.factory.impl;
 
 
+import org.agrsw.mavenreleaser.dto.RepositoryDTO;
 import org.agrsw.mavenreleaser.exception.ReleaserException;
 import org.agrsw.mavenreleaser.factory.RepositoryFactory;
 import org.agrsw.mavenreleaser.repository.VersionControlRepository;
@@ -23,13 +24,19 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
        REPOSITORY_MAP.put(RepositoryTypeEnum.GIT, new GitManagerImpl());
     }
 
+    @Deprecated
     @Override
-    public VersionControlRepository buildRepositoryManager(RepositoryTypeEnum repositoryTypeEnum) throws ReleaserException {
+    public VersionControlRepository getRepositoryManager(RepositoryTypeEnum repositoryTypeEnum) throws ReleaserException {
 
         if(Objects.isNull(REPOSITORY_MAP.get(repositoryTypeEnum))){
             throw new ReleaserException("Repository not found");
         }
 
         return REPOSITORY_MAP.get(repositoryTypeEnum);
+    }
+
+    @Override
+    public VersionControlRepository getRepositoryManager(RepositoryDTO repositoryDTO) throws ReleaserException {
+        return getRepositoryManager(repositoryDTO.getRepositoryType());
     }
 }
