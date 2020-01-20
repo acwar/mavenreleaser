@@ -141,13 +141,15 @@ public class Releaser implements CommandLineRunner {
         tempreleaseArtifact.setArtefactName((String) cmd.getParsedOptionValue("artefactName"));
         tempreleaseArtifact.setUrl(cmd.getOptionValue("url"));
         tempreleaseArtifact.setAction(cmd.getOptionValue("action"));
+        tempreleaseArtifact.setPassword(cmd.getOptionValue("password"));
 
-        final Console cnsl = System.console();
-        if (cnsl != null) 
-            tempreleaseArtifact.setPassword(String.copyValueOf(cnsl.readPassword("Password: ", new Object[0])));
-        else 
-            tempreleaseArtifact.setPassword(getLineFromConsole("Type the password for " + tempreleaseArtifact.getUsername()));
-        
+        Console cnsl;
+        if (tempreleaseArtifact.getPassword() == null){
+            if ((cnsl = System.console()) != null)
+                tempreleaseArtifact.setPassword(String.copyValueOf(cnsl.readPassword("Password: ", new Object[0])));
+            else
+                tempreleaseArtifact.setPassword(getLineFromConsole("Type the password for " + tempreleaseArtifact.getUsername()));
+        }
         
         return tempreleaseArtifact;
     }
@@ -166,17 +168,19 @@ public class Releaser implements CommandLineRunner {
 
 
     private Options configureArgsExtractor() {
-        final Options options = new Options();
-        final Option userNameOption = Option.builder().argName("username").hasArg(true).longOpt("username").required(true).build();
-        final Option urlOption = Option.builder().argName("url").hasArg(true).longOpt("url").required(true).build();
-        final Option artefactOption = Option.builder().argName("artefactName").hasArg(true).longOpt("artefactName").required(true).build();
-        final Option actionOption = Option.builder().argName("action").hasArg(true).longOpt("action").required(true).build();
-        final Option jiraOption = Option.builder().argName("jira").hasArg(true).longOpt("jira").required(false).build();
+        Options options = new Options();
+        Option userNameOption = Option.builder().argName("username").hasArg(true).longOpt("username").required(true).build();
+        Option urlOption = Option.builder().argName("url").hasArg(true).longOpt("url").required(true).build();
+        Option artefactOption = Option.builder().argName("artefactName").hasArg(true).longOpt("artefactName").required(true).build();
+        Option actionOption = Option.builder().argName("action").hasArg(true).longOpt("action").required(true).build();
+        Option jiraOption = Option.builder().argName("jira").hasArg(true).longOpt("jira").required(false).build();
+        Option password = Option.builder().argName("password").hasArg(true).longOpt("password").required(false).build();
         options.addOption(userNameOption);
         options.addOption(urlOption);
         options.addOption(artefactOption);
         options.addOption(actionOption);
         options.addOption(jiraOption);
+        options.addOption(password);
         return options;
     }
 
@@ -205,7 +209,8 @@ public class Releaser implements CommandLineRunner {
     private void doRelease(final String url, final String artefactName) throws IOException, XmlPullParserException, MavenInvocationException, ReleaserException {
         final String path = tempDir + artefactName;
         log.info("--> #################### Release Started for Artefact " + artefactName);
-        downloadProject(url, new File(path));
+        //downloadProject(url, new File(path));
+        scmMediator.downloadProject(url, new File(path));
         log.info("Artefact Info :" + getArtifactInfo(path + "/pom.xml"));
         processPomRelease(path + "/pom.xml");
         mavenInvoker(path + "/pom.xml");
@@ -326,50 +331,51 @@ public class Releaser implements CommandLineRunner {
 
     private void processPomRelease(final String file) throws FileNotFoundException, IOException, XmlPullParserException, MavenInvocationException, ReleaserException {
         log.info("-->Processing Pom " + file);
-        final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
-        final File pomfile = new File(file);
-        final Model model = mavenreader.read((Reader) new FileReader(pomfile));
+        MavenXpp3Reader mavenreader = new MavenXpp3Reader();
+        File pomfile = new File(file);
+        Model model = mavenreader.read((Reader) new FileReader(pomfile));
         if (model.getVersion().indexOf("-SNAPSHOT") == -1) {
             log.debug("The artifact " + model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + " is already a release");
             return;
         }
-        final List<Dependency> deps = (List<Dependency>) model.getDependencies();
+        List<Dependency> deps = (List<Dependency>) model.getDependencies();
         log.info("Processing dependencies...");
         String artefact = "";
-        for (final Dependency d : deps) {
+        for (Dependency d : deps) {
             Model pom;
             artefact = String.valueOf(d.getGroupId()) + "." + d.getArtifactId() + "." + d.getVersion();
             log.debug(artefact);
-            if (d.getVersion().endsWith("SNAPSHOT")) {
-                log.debug("The artefact is in SNAPSHOT, processing...");
-                log.debug("Check in artifactoy is the release version already exists");
-                if (artifactoryHelper.getReleasedArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT"))) == null) {
-                    log.info("Artifact release not found at artifactory");
-                    if ((pom = artifactoryHelper.getSnapshotArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion())) != null) {
-                        doRelease(extractSCMUrl(pom.getScm()), String.valueOf(d.getArtifactId()) + System.currentTimeMillis());
-                        d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT")));
-                        if (!Releaser.artefacts.containsKey(artefact))
-                            Releaser.artefacts.put(artefact, artefact);
-                         else
-                            log.warn("Artefact is already in the map " + artefact);
-                    } else {
-                        log.error("Artifact not found at repository");
-                        if (!Releaser.artefactsNotInArtifactory.containsKey(artefact))
-                            Releaser.artefactsNotInArtifactory.put(artefact, artefact);
-                         else
-                            log.warn("Artefact is already in the map " + artefact);
-                    }
-                } else {
-                    log.debug("The artifact is in snapshot in the pom.xml but is already released");
+            if (d.getVersion()!=null && d.getVersion().endsWith("SNAPSHOT")) {
+                log.debug(artefact + " is in SNAPSHOT, processing...");
+                log.debug("\tCheck in artifactoy if the release version of " + artefact + " already exists");
+                if (artifactoryHelper.getReleasedArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT"))) != null) {
+                    log.debug(artefact + "\t in snapshot in the pom.xml but is already released");
                     d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT")));
                     if (!Releaser.artefactsAlreadyReleased.containsKey(artefact))
                         Releaser.artefactsAlreadyReleased.put(artefact, artefact);
+                    else
+                        log.warn("\tArtefact is already in the map " + artefact);
+                    continue;
+                }
+                log.info("\tArtifact release not found at artifactory");
+                if ((pom = artifactoryHelper.getSnapshotArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion())) != null) {
+                    doRelease(extractSCMUrl(pom.getScm()), String.valueOf(d.getArtifactId()) + System.currentTimeMillis());
+                    d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT")));
+                    if (!Releaser.artefacts.containsKey(artefact))
+                        Releaser.artefacts.put(artefact, artefact);
                      else
-                        log.warn("Artefact is already in the map " + artefact);
+                        log.warn("\tArtefact is already in the map " + artefact);
+                } else {
+                    log.error("Artifact not found at repository");
+                    if (!Releaser.artefactsNotInArtifactory.containsKey(artefact))
+                        Releaser.artefactsNotInArtifactory.put(artefact, artefact);
+                     else
+                        log.warn("\tArtefact is already in the map " + artefact);
                 }
             } else
                 log.debug("The artifact is a release, skiping");
         }
+
         writeModel(pomfile, model);
         commit(pomfile);
         log.info("<--Processing Pom " + file);
@@ -399,23 +405,23 @@ public class Releaser implements CommandLineRunner {
         for (Dependency d : deps) {
             Model pom;
             artefact = String.valueOf(d.getGroupId()) + "." + d.getArtifactId() + "." + d.getVersion();
-            log.debug(artefact);
             if (d.getVersion()!=null && d.getVersion().endsWith("SNAPSHOT")) {
                 log.debug(artefact + " is in SNAPSHOT, processing...");
-                log.debug("Check in artifactoy if the release version of " + artefact + " already exists");
+                log.debug("\tCheck in artifactoy if the release version of " + artefact + " already exists");
                 if (artifactoryHelper.getReleasedArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT"))) != null) {
                     continue;
                 }
-                log.debug("Artifact release not found in artifactory");
+                log.debug("\tArtifact release not found in artifactory");
                 if (!Releaser.artefacts.containsKey(artefact)) {
                     Releaser.artefacts.put(artefact, artefact);
+                    log.debug("\tCheck in artifactoy if the SNAPSHOT version of " + artefact + " already exists");
                     if ((pom = artifactoryHelper.getSnapshotArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion())) != null) {
                         doPrepare(extractSCMUrl(pom.getScm()), String.valueOf(d.getArtifactId()) + System.currentTimeMillis());
                         d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT")));
                     } else
-                        log.debug("Artifact snapshot not found in repository");
+                        log.debug("\tArtifact snapshot not found in repository");
                 } else
-                    log.warn("Artefact is already in the map " + artefact);
+                    log.warn("\tArtefact is already in the map " + artefact);
             } else
                 log.debug(artefact + " is a release, skiping");
         }
