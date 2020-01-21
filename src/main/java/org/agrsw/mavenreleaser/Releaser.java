@@ -213,6 +213,7 @@ public class Releaser implements CommandLineRunner {
         scmMediator.downloadProject(url, new File(path));
         log.info("Artefact Info :" + getArtifactInfo(path + "/pom.xml"));
         processPomRelease(path + "/pom.xml");
+        log.info("Maven Release for " + getArtifactInfo(path + "/pom.xml"));
         mavenInvoker(path + "/pom.xml");
         log.info("<-- #################### Release Finished for Artefact " + artefactName);
     }
@@ -226,9 +227,8 @@ public class Releaser implements CommandLineRunner {
     }
 
     private void mavenInvoker(final String pom) throws MavenInvocationException {
-        final InvocationRequest request = new DefaultInvocationRequest();
-        log.debug("Before calling getArtefact");
-        final Artefact artefact = getArtefactFromFile(pom);
+        InvocationRequest request = new DefaultInvocationRequest();
+        Artefact artefact = getArtefactFromFile(pom);
 
         log.info("Current Version : " + artefact.getVersion());
         final String autoVersion = getNextVersion(artefact.getVersion(), artefact.getScmURL());
