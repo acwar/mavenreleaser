@@ -249,7 +249,7 @@ public class Releaser implements CommandLineRunner {
         final Properties properties = new Properties();
         properties.put("username", releaseArtifact.getUsername());
         properties.put("password", releaseArtifact.getPassword());
-        properties.put("arguments", "-DskipTests -Dmaven.javadoc.skip=true ");
+        properties.put("arguments", "-DskipTests -Dmaven.javadoc.skip=true -U ");
         properties.put("developmentVersion", nextVersion);
         request.setProperties(properties);
 
@@ -375,9 +375,13 @@ public class Releaser implements CommandLineRunner {
             } else
                 log.debug("The artifact is a release, skiping");
         }
-
+        /**
+         * Is this really needed??
+         */
         writeModel(pomfile, model);
-        commit(pomfile);
+        scmMediator.commitFile(extractSCMUrl(model.getScm()),pomfile);
+
+        //commit(pomfile,model.getScm());
         log.info("<--Processing Pom " + file);
     }
 
@@ -489,25 +493,6 @@ public class Releaser implements CommandLineRunner {
     }
 
 
-
-    private boolean commit(final File file) {
-        DAVRepositoryFactory.setup();
-        final SVNClientManager manager = SVNClientManager.newInstance();
-        try {
-            final ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager(releaseArtifact.getUsername(), releaseArtifact.getPassword());
-            manager.setAuthenticationManager(authManager);
-            final SVNCommitClient svnCommitClient = manager.getCommitClient();
-            svnCommitClient.doCommit(new File[]{file}, false, "Releaser " + notCheckToken, (SVNProperties) null, (String[]) null, false, false, SVNDepth.INFINITY);
-        } catch (SVNException e) {
-            log.debug("Error checking out project." + e);
-            return false;
-        } finally {
-            manager.dispose();
-        }
-        manager.dispose();
-        return false;
-    }
-
     private String getFilefromSVN(final String repositoryURL, final String filePath) {
         SVNRepository repository = null;
         final String file = null;
@@ -525,20 +510,6 @@ public class Releaser implements CommandLineRunner {
         }
     }
 
-    public Artefact getArtefactOfFile(final String repositoryURL, final String file, final String jiraIssue) {
-        Artefact jiraArtefactOfFile = null;
-        if (file != null) {
-            final String[] splits = file.split("/src/main");
-            log.debug(splits.toString());
-            String url = getPomURL(file);
-            if ((url != null) && (splits.length > 0)) {
-                final String pom = getFilefromSVN(repositoryURL, url);
-                final Artefact artefact = getArtefactFromString(pom);
-                jiraArtefactOfFile = JiraClient.getIssueKey(ProjectsEnum.getProjectNameFromGroupId(artefact.getGroupId()), artefact.getArtefactId(), artefact.getVersion().substring(0, artefact.getVersion().indexOf("-SNAPSHOT")));
-            }
-        }
-        return jiraArtefactOfFile;
-    }
 
     private String getPomURL(String file) {
         log.debug("getPomURL->" + file);
@@ -586,42 +557,6 @@ public class Releaser implements CommandLineRunner {
 
     }
 
-    public int checkCommit(final String[] svnFiles, final String issueKey) {
-        int result = 0;
-        Artefact jiraArtefactOfFile = null;
-        log.info("Get the jira issue by key: " + issueKey);
-        String message = "";
-        final Artefact jiraIssueArtefact = JiraClient.getIssueByKey(issueKey, true);
-        if (jiraIssueArtefact == null) {
-            message = "There is not a Jira Issue in open status for the key " + issueKey;
-            System.err.println(message);
-            log.info(message);
-
-            result = 3;
-        } else {
-            for (int i = 0; i < svnFiles.length; ++i) {
-                jiraArtefactOfFile = getArtefactOfFile(Releaser.repoURL, svnFiles[i], issueKey);
-                if (jiraArtefactOfFile == null) {
-                    message = "There is not a Jira Artefact for " + svnFiles[i];
-                    System.err.println(message);
-                    log.info(message);
-                    result = 1;
-                } else {
-                    if (!jiraIssueArtefact.containsLinkedIssue(jiraArtefactOfFile.getJiraIssue())) {
-                        result = 2;
-                        message = "The issue  " + jiraIssueArtefact.getJiraIssue() + " has not linked the artefact " + jiraArtefactOfFile.getJiraIssue();
-                        System.err.println(message);
-                        log.info(message);
-                        break;
-                    }
-                    result = 0;
-                }
-            }
-        }
-
-        return result;
-    }
-
     public void writeModel(final File pomFile, final Model model) throws IOException {
         Writer writer = null;
         try {
@@ -646,19 +581,6 @@ public class Releaser implements CommandLineRunner {
             log.error(ex2.toString());
         }
         return artefactInfo;
-    }
-
-    private String getArtefactVersion(final String file) {
-        final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
-        final File pomfile = new File(file);
-        String version = "";
-        try {
-            final Model model = mavenreader.read((Reader) new FileReader(pomfile));
-            version = model.getVersion();
-        } catch (IOException | XmlPullParserException ex2) {
-            log.error(ex2.toString());
-        }
-        return version;
     }
 
     private Artefact getArtefactFromFile(final String file) {
@@ -697,19 +619,6 @@ public class Releaser implements CommandLineRunner {
             log.error(ex2.toString());
         }
         return artefact;
-    }
-
-    private String getArtefactSCMURL(final String file) {
-        final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
-        final File pomfile = new File(file);
-        String url = "";
-        try {
-            final Model model = mavenreader.read((Reader) new FileReader(pomfile));
-            url = model.getScm().getDeveloperConnection();
-        } catch (IOException | XmlPullParserException ex2) {
-            log.error(ex2.toString());
-        }
-        return url;
     }
 
 
@@ -786,16 +695,4 @@ public class Releaser implements CommandLineRunner {
         return newVersion;
     }
 
-    public String getToken() {
-        String notcheckTokenProperty = null;
-        Properties prop = new Properties();
-        try {
-            prop.load(Releaser.class.getClassLoader().getResourceAsStream("config.properties"));
-            notcheckTokenProperty = prop.getProperty("notchecktoken");
-        } catch (IOException e) {
-            log.error(e.toString());
-        }
-        return notcheckTokenProperty;
-
-    }
 }

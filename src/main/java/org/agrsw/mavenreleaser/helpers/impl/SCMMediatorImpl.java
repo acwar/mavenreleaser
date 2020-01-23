@@ -9,6 +9,7 @@ import org.agrsw.mavenreleaser.helpers.SCMMediator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -21,13 +22,30 @@ public class SCMMediatorImpl implements SCMMediator {
     @Autowired
     private RepositoryFactory repositoryFactory;
 
+    @Value("${notcheck.token}")
+    private String notCheckToken;
+
     //TODO add as parameter
     private ReleaseArtifact releaseArtifact;
 
     @Override
     public boolean downloadProject(String url, File target) throws ReleaserException {
         log.info("Downloading from SCM {}", url);
+        RepositoryDTO repositoryDTO  = buildRepositoryDTO(url);
+        repositoryFactory.getRepositoryManager(repositoryDTO).downloadProject(repositoryDTO,target);
+        return false;
+    }
 
+    @Override
+    public boolean commitFile(String url, File target) throws ReleaserException {
+        log.info("Commit to SCM {}", url);
+        RepositoryDTO repositoryDTO  = buildRepositoryDTO(url);
+        repositoryFactory.getRepositoryManager(repositoryDTO).commit(target,repositoryDTO,notCheckToken);
+        return false;
+
+    }
+
+    private RepositoryDTO buildRepositoryDTO(String url){
         RepositoryDTO repositoryDTO  = new RepositoryDTO();
         repositoryDTO.setUserName(releaseArtifact.getUsername());
         repositoryDTO.setPassword(releaseArtifact.getPassword());
@@ -38,9 +56,7 @@ public class SCMMediatorImpl implements SCMMediator {
         else
             repositoryDTO.setRepositoryType(RepositoryTypeEnum.SVN);
 
-        repositoryFactory.getRepositoryManager(repositoryDTO).downloadProject(repositoryDTO,target);
-
-        return false;
+        return repositoryDTO;
     }
 
     private boolean isGit(String url){
