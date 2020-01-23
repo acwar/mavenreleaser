@@ -6,38 +6,51 @@ import org.agrsw.mavenreleaser.enums.ProjectsEnum;
 import org.agrsw.mavenreleaser.exception.ReleaserException;
 import org.agrsw.mavenreleaser.helpers.ArtifactoryHelper;
 import org.agrsw.mavenreleaser.helpers.SCMMediator;
-import org.springframework.boot.autoconfigure.*;
+import org.apache.commons.cli.*;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.Scm;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+import org.apache.maven.shared.invoker.*;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.web.EmbeddedServletContainerAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration;
-import org.springframework.beans.factory.annotation.*;
-import org.slf4j.*;
-import org.codehaus.plexus.util.xml.pull.*;
-import org.agrsw.mavenreleaser.dto.RepositoryDTO;
-import org.agrsw.mavenreleaser.factory.RepositoryFactory;
-import org.agrsw.mavenreleaser.repository.VersionControlRepository;
-import org.apache.commons.cli.*;
-import org.springframework.boot.*;
-import org.tmatesoft.svn.core.io.*;
-import org.tmatesoft.svn.core.auth.*;
-import org.apache.maven.shared.invoker.*;
-import org.apache.maven.model.*;
-import org.tmatesoft.svn.core.internal.io.dav.*;
-import org.tmatesoft.svn.core.wc.*;
-
-
-import org.tmatesoft.svn.core.*;
-import org.apache.maven.model.io.xpp3.*;
-import org.codehaus.plexus.util.*;
 
 import java.io.*;
-import java.io.File;
 import java.util.*;
+
+//TODO Unifica el dascargador y buscador de artefactos, el metodo recursivo
 
 @SpringBootApplication(exclude = {EmbeddedServletContainerAutoConfiguration.class, WebMvcAutoConfiguration.class})
 public class Releaser implements CommandLineRunner {
 
+    public static final String ARTEFACTOS_ENCONTRADOS = "######################## Artefactos encontrados:  #############################################################";
+    public static final String ARTEFACTOS_QUE_YA_ESTABAN_RELESEADOS = "######################## Artefactos que ya estaban releseados:  ###############################################";
+    public static final String ARTEFACTOS_QUE_NO_ESTAN_EN_ARTIFACTORY_HACER_CLEAN_DEPLOY = "######################## Artefactos que no est\u00e1n en Artifactory (hacer clean deploy):  ###################";
+    public static final String ARTEFACTOS_JIRAS_QUE_SE_PROCESARON_CORRECTAMENTE = "######################## Artefactos jiras que se procesaron correctamente  ####################################";
+    public static final String ARTEFACTOS_JIRAS_QUE_NO_SE_PROCESARON_CORRECTAMENTE = "######################## Artefactos jiras que NO se procesaron correctamente  #################################";
+    public static final String ARTEFACT_NAME_LITERAL = "artefactName";
+    public static final String USERNAME_LITERAL = "username";
+    public static final String URL_LITERAL = "url";
+    public static final String ACTION_LITERAL = "action";
+    public static final String PASS_LITERAL = "password";
+    public static final String POM_XML_LITERAL = "/pom.xml";
+    public static final String SNAPSHOT_LITERAL = "-SNAPSHOT";
+    public static final String PROCESSING_DEPENDENCIES = "Processing dependencies...";
+    public static final String PROCESSING_POM_INPUT = "-->Processing Pom ";
+    public static final String PROCESSING_POM_OUTPUT = "<--Processing Pom ";
+    public static final String ARTEFACT_IS_ALREADY_IN_THE_MAP = "\tArtefact is already in the map ";
+    public static final String ALREADY_EXISTS = " already exists";
     @Getter
-    private Logger log = LoggerFactory.getLogger((Class) Releaser.class);
+    private Logger log = LoggerFactory.getLogger(Releaser.class);
 
     @Autowired
     private ArtifactoryHelper artifactoryHelper;
@@ -62,8 +75,6 @@ public class Releaser implements CommandLineRunner {
     @Value("${tempDir:/tmp/svn/}")
     private String tempDir;
 
-    private static String repoURL;
-
     @Value("${jira.user}")
     public String jiraUser = "";
 
@@ -72,16 +83,15 @@ public class Releaser implements CommandLineRunner {
 
 
     static {
-        Releaser.artefacts = new HashMap<String, String>();
-        Releaser.artefactsAlreadyReleased = new HashMap<String, String>();
-        Releaser.artefactsNotInArtifactory = new HashMap<String, String>();
-        Releaser.jirasNotReleased = new HashMap<String, Artefact>();
-        Releaser.jirasReleased = new HashMap<String, Artefact>();
-        Releaser.repoURL = "http://192.168.10.2/svn/mercury/";
+        Releaser.artefacts = new HashMap<>();
+        Releaser.artefactsAlreadyReleased = new HashMap<>();
+        Releaser.artefactsNotInArtifactory = new HashMap<>();
+        Releaser.jirasNotReleased = new HashMap<>();
+        Releaser.jirasReleased = new HashMap<>();
     }
 
-    public static void main(final String[] args) throws MavenInvocationException, FileNotFoundException, IOException, XmlPullParserException {
-        SpringApplication.run((Object) Releaser.class, args);
+    public static void main(final String[] args) {
+        SpringApplication.run(Releaser.class, args);
     }
 
     @Override
@@ -97,56 +107,54 @@ public class Releaser implements CommandLineRunner {
             scmMediator.setReleaseArtifact(releaseArtifact);
             log.debug(cmd.toString());
         } catch (ParseException e1) {
-            e1.printStackTrace();
-            final HelpFormatter formatter = new HelpFormatter();
+            log.debug(e1.getMessage());
+            HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("java -jar nombrejar.jar", options);
             System.exit(-1);
         }
         try {
-            if (releaseArtifact.getAction().equals("release")) {
-                doRelease(releaseArtifact.getUrl(), String.valueOf(releaseArtifact.getArtefactName()) + "-" + System.currentTimeMillis());
-                logArtifacts("######################## Artefactos encontrados:  #############################################################", Releaser.artefacts.keySet());
-                logArtifacts("######################## Artefactos que ya estaban releseados:  ###############################################", Releaser.artefactsAlreadyReleased.keySet());
-                logArtifacts("######################## Artefactos que no est\u00e1n en Artifactory (hacer clean deploy):  ###################", Releaser.artefactsNotInArtifactory.keySet());
-                logArtifacts("######################## Artefactos jiras que se procesaron correctamente  ####################################", Releaser.jirasReleased.keySet());
-                logArtifacts("######################## Artefactos jiras que NO se procesaron correctamente  #################################", Releaser.jirasNotReleased.keySet());
-            } else if (releaseArtifact.getAction().equals("prepare")) {
-                doPrepare(releaseArtifact.getUrl(), String.valueOf(releaseArtifact.getArtefactName()) + "-" + System.currentTimeMillis());
-                logArtifacts("######################## Artefactos encontrados:  #############################################################", Releaser.artefacts.keySet());
-            } else if (releaseArtifact.getAction().equals("sources")) {
-                doSources(releaseArtifact.getUrl(), String.valueOf(releaseArtifact.getArtefactName()) + "-" + System.currentTimeMillis());
-                logArtifacts("######################## Artefactos encontrados:  #############################################################", Releaser.artefacts.keySet());
+            switch (releaseArtifact.getAction()) {
+                case "release":
+                    doRelease(releaseArtifact.getUrl(), releaseArtifact.getArtefactName() + "-" + System.currentTimeMillis());
+                    logArtifacts(ARTEFACTOS_ENCONTRADOS, Releaser.artefacts.keySet());
+                    logArtifacts(ARTEFACTOS_QUE_YA_ESTABAN_RELESEADOS, Releaser.artefactsAlreadyReleased.keySet());
+                    logArtifacts(ARTEFACTOS_QUE_NO_ESTAN_EN_ARTIFACTORY_HACER_CLEAN_DEPLOY, Releaser.artefactsNotInArtifactory.keySet());
+                    logArtifacts(ARTEFACTOS_JIRAS_QUE_SE_PROCESARON_CORRECTAMENTE, Releaser.jirasReleased.keySet());
+                    logArtifacts(ARTEFACTOS_JIRAS_QUE_NO_SE_PROCESARON_CORRECTAMENTE, Releaser.jirasNotReleased.keySet());
+                    break;
+                case "prepare":
+                    doPrepare(releaseArtifact.getUrl(), releaseArtifact.getArtefactName() + "-" + System.currentTimeMillis());
+                    logArtifacts(ARTEFACTOS_ENCONTRADOS, Releaser.artefacts.keySet());
+                    break;
+                case "sources":
+                    doSources(releaseArtifact.getUrl(), releaseArtifact.getArtefactName() + "-" + System.currentTimeMillis());
+                    logArtifacts(ARTEFACTOS_ENCONTRADOS, Releaser.artefacts.keySet());
+                    break;
+                default:
+                    log.info("No compatible action provided. User release/prepare/sources");
             }
-        } catch (FileNotFoundException e2) {
-            e2.printStackTrace();
-        } catch (IOException e3) {
-            e3.printStackTrace();
-        } catch (XmlPullParserException e4) {
-            e4.printStackTrace();
-        } catch (MavenInvocationException e5) {
-            e5.printStackTrace();
-        } catch (ReleaserException e) {
-            e.printStackTrace();
+        } catch (IOException | XmlPullParserException | MavenInvocationException | ReleaserException e1) {
+            log.debug(e1.getMessage());
+            e1.printStackTrace();
         }
     }
     private void logArtifacts(String mensaje,Collection<String> values){
         log.info(mensaje);
-        for (String artefact : values) {
+        for (String artefact : values)
             log.info(artefact);
-        }
     }
     private ReleaseArtifact interpretReleaseArtifact(CommandLine cmd) throws ParseException {
         ReleaseArtifact tempreleaseArtifact = new ReleaseArtifact();
-        tempreleaseArtifact.setUsername((String) cmd.getParsedOptionValue("username"));
-        tempreleaseArtifact.setArtefactName((String) cmd.getParsedOptionValue("artefactName"));
-        tempreleaseArtifact.setUrl(cmd.getOptionValue("url"));
-        tempreleaseArtifact.setAction(cmd.getOptionValue("action"));
-        tempreleaseArtifact.setPassword(cmd.getOptionValue("password"));
+        tempreleaseArtifact.setUsername((String) cmd.getParsedOptionValue(USERNAME_LITERAL));
+        tempreleaseArtifact.setArtefactName((String) cmd.getParsedOptionValue(ARTEFACT_NAME_LITERAL));
+        tempreleaseArtifact.setUrl(cmd.getOptionValue(URL_LITERAL));
+        tempreleaseArtifact.setAction(cmd.getOptionValue(ACTION_LITERAL));
+        tempreleaseArtifact.setPassword(cmd.getOptionValue(PASS_LITERAL));
 
         Console cnsl;
         if (tempreleaseArtifact.getPassword() == null){
             if ((cnsl = System.console()) != null)
-                tempreleaseArtifact.setPassword(String.copyValueOf(cnsl.readPassword("Password: ", new Object[0])));
+                tempreleaseArtifact.setPassword(String.copyValueOf(cnsl.readPassword("Password: ", (Object) new String[0])));
             else
                 tempreleaseArtifact.setPassword(getLineFromConsole("Type the password for " + tempreleaseArtifact.getUsername()));
         }
@@ -169,12 +177,12 @@ public class Releaser implements CommandLineRunner {
 
     private Options configureArgsExtractor() {
         Options options = new Options();
-        Option userNameOption = Option.builder().argName("username").hasArg(true).longOpt("username").required(true).build();
-        Option urlOption = Option.builder().argName("url").hasArg(true).longOpt("url").required(true).build();
-        Option artefactOption = Option.builder().argName("artefactName").hasArg(true).longOpt("artefactName").required(true).build();
-        Option actionOption = Option.builder().argName("action").hasArg(true).longOpt("action").required(true).build();
+        Option userNameOption = Option.builder().argName(USERNAME_LITERAL).hasArg(true).longOpt(USERNAME_LITERAL).required(true).build();
+        Option urlOption = Option.builder().argName(URL_LITERAL).hasArg(true).longOpt(URL_LITERAL).required(true).build();
+        Option artefactOption = Option.builder().argName(ARTEFACT_NAME_LITERAL).hasArg(true).longOpt(ARTEFACT_NAME_LITERAL).required(true).build();
+        Option actionOption = Option.builder().argName(ACTION_LITERAL).hasArg(true).longOpt(ACTION_LITERAL).required(true).build();
         Option jiraOption = Option.builder().argName("jira").hasArg(true).longOpt("jira").required(false).build();
-        Option password = Option.builder().argName("password").hasArg(true).longOpt("password").required(false).build();
+        Option password = Option.builder().argName(PASS_LITERAL).hasArg(true).longOpt(PASS_LITERAL).required(false).build();
         options.addOption(userNameOption);
         options.addOption(urlOption);
         options.addOption(artefactOption);
@@ -184,45 +192,23 @@ public class Releaser implements CommandLineRunner {
         return options;
     }
 
-    
-    private boolean checkIfPathExist(final String path) {
-        final SVNClientManager manager = SVNClientManager.newInstance();
-        boolean exists = false;
-        try {
-            SVNRepository repository = null;
-            repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(Releaser.repoURL));
-            final ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager(releaseArtifact.getUsername(), releaseArtifact.getPassword());
-            repository.setAuthenticationManager(authManager);
-            final SVNNodeKind nodeKind = repository.checkPath(path, -1L);
-            if (nodeKind == SVNNodeKind.NONE) {
-                System.err.println("There is no entry at '" + path + "'.");
-            } else if (nodeKind == SVNNodeKind.FILE) {
-                exists = true;
-            }
-            log.debug("");
-        } catch (Exception e) {
-            log.debug("");
-        }
-        return exists;
-    }
 
     private void doRelease(final String url, final String artefactName) throws IOException, XmlPullParserException, MavenInvocationException, ReleaserException {
         final String path = tempDir + artefactName;
         log.info("--> #################### Release Started for Artefact " + artefactName);
-        //downloadProject(url, new File(path));
         scmMediator.downloadProject(url, new File(path));
-        log.info("Artefact Info :" + getArtifactInfo(path + "/pom.xml"));
-        processPomRelease(path + "/pom.xml");
-        log.info("Maven Release for " + getArtifactInfo(path + "/pom.xml"));
-        mavenInvoker(path + "/pom.xml");
+        log.info("Artefact Info :" + getArtifactInfo(path + POM_XML_LITERAL));
+        processPomRelease(path + POM_XML_LITERAL);
+        log.info("Maven Release for " + getArtifactInfo(path + POM_XML_LITERAL));
+        mavenInvoker(path + POM_XML_LITERAL);
         log.info("<-- #################### Release Finished for Artefact " + artefactName);
     }
 
-    private void doSources(final String url, final String artefactName) throws IOException, XmlPullParserException, MavenInvocationException {
+    private void doSources(final String url, final String artefactName) throws IOException, XmlPullParserException, ReleaserException {
         final String path = tempDir + artefactName;
         log.info("--> ######## Prepare Started for Artefact " + artefactName);
-        downloadProject(url, new File(path));
-        processPomSources(path + "/pom.xml");
+        scmMediator.downloadProject(url, new File(path));
+        processPomSources(path + POM_XML_LITERAL);
         log.info("<-- ######## Prepare Finished for Artefact " + artefactName);
     }
 
@@ -236,24 +222,24 @@ public class Releaser implements CommandLineRunner {
         if (nextVersion.equals("")) {
             nextVersion = autoVersion;
         }
-        if (!nextVersion.endsWith("-SNAPSHOT")) {
+        if (!nextVersion.endsWith(SNAPSHOT_LITERAL)) {
             log.warn("Next Version has not -SNAPSHOT SUFFIX. Adding...");
-            nextVersion = String.valueOf(nextVersion) + "-SNAPSHOT";
+            nextVersion = nextVersion + SNAPSHOT_LITERAL;
         }
         request.setPomFile(new File(pom));
-        final List<String> goals = new ArrayList<String>();
+        final List<String> goals = new ArrayList<>();
         goals.add("release:prepare");
         goals.add("release:perform");
-        request.setGoals((List) goals);
+        request.setGoals(goals);
 
         final Properties properties = new Properties();
-        properties.put("username", releaseArtifact.getUsername());
-        properties.put("password", releaseArtifact.getPassword());
+        properties.put(USERNAME_LITERAL, releaseArtifact.getUsername());
+        properties.put(PASS_LITERAL, releaseArtifact.getPassword());
         properties.put("arguments", "-DskipTests -Dmaven.javadoc.skip=true -U ");
         properties.put("developmentVersion", nextVersion);
         request.setProperties(properties);
 
-        final Invoker invoker = (Invoker) new DefaultInvoker();
+        final Invoker invoker = new DefaultInvoker();
         invoker.setInputStream(System.in);
         invoker.setMavenHome(new File(mavenHome));
         final InvocationResult result = invoker.execute(request);
@@ -261,116 +247,100 @@ public class Releaser implements CommandLineRunner {
             throw new IllegalStateException("Build failed.");
         }
         String version = artefact.getVersion();
-        if (version.endsWith("-SNAPSHOT")) {
-            final int snapshotPosition = version.indexOf("-SNAPSHOT");
+        if (version.endsWith(SNAPSHOT_LITERAL)) {
+            final int snapshotPosition = version.indexOf(SNAPSHOT_LITERAL);
             version = version.substring(0, snapshotPosition);
         }
-        if (nextVersion.endsWith("-SNAPSHOT")) {
-            final int snapshotPosition = nextVersion.indexOf("-SNAPSHOT");
+        if (nextVersion.endsWith(SNAPSHOT_LITERAL)) {
+            final int snapshotPosition = nextVersion.indexOf(SNAPSHOT_LITERAL);
             nextVersion = nextVersion.substring(0, snapshotPosition);
         }
         final String project = ProjectsEnum.getProjectNameFromGroupId(artefact.getGroupId());
         if (!project.equals("")) {
             final Artefact arti = JiraClient.getIssueKey(project, artefact.getArtefactId(), version);
             if (arti == null) {
-                Releaser.jirasNotReleased.put(String.valueOf(artefact.getGroupId()) + artefact.getArtefactId(), artefact);
+                Releaser.jirasNotReleased.put(artefact.getGroupId() + artefact.getArtefactId(), artefact);
                 log.error("Cannot find jira issue for artefact: " + artefact);
             } else {
                 JiraClient.createVersion(project, nextVersion, nextVersion);
-                final String newIssue = JiraClient.createIssue(project, String.valueOf(artefact.getArtefactId()) + "-" + nextVersion, arti.getDescription(), artefact.getArtefactId(), version, nextVersion);
+                final String newIssue = JiraClient.createIssue(project, artefact.getArtefactId() + "-" + nextVersion, arti.getDescription(), artefact.getArtefactId(), version, nextVersion);
                 if (newIssue == null) {
-                    Releaser.jirasNotReleased.put(String.valueOf(artefact.getGroupId()) + artefact.getArtefactId(), artefact);
+                    Releaser.jirasNotReleased.put(artefact.getGroupId() + artefact.getArtefactId(), artefact);
                     log.error("Cannot create jira issue for artefact: " + artefact);
                 } else {
                     final String oldIssue = JiraClient.closeIssue(arti.getJiraIssue());
                     if (oldIssue == null) {
-                        Releaser.jirasNotReleased.put(String.valueOf(artefact.getGroupId()) + artefact.getArtefactId(), artefact);
+                        Releaser.jirasNotReleased.put(artefact.getGroupId() + artefact.getArtefactId(), artefact);
                         log.error("Cannot close jira issue for artefact: " + artefact);
                     } else {
                         artefact.setJiraIssue(newIssue);
-                        Releaser.jirasReleased.put(String.valueOf(artefact.getGroupId()) + artefact.getArtefactId(), artefact);
+                        Releaser.jirasReleased.put(artefact.getGroupId() + artefact.getArtefactId(), artefact);
                         log.error("jira issue released: " + artefact);
                     }
                 }
             }
         } else {
-            Releaser.jirasNotReleased.put(String.valueOf(artefact.getGroupId()) + artefact.getArtefactId(), artefact);
+            Releaser.jirasNotReleased.put(artefact.getGroupId() + artefact.getArtefactId(), artefact);
             log.error("Cannot determinate the project for artifact: " + artefact);
         }
     }
 
     private void saveToFile(final InputStream is, final String name) {
         final File targetFile = new File(name);
-        OutputStream outStream = null;
-        try {
-            outStream = new FileOutputStream(targetFile);
+        try (
+           OutputStream outStream = new FileOutputStream(targetFile)
+        ){
             final byte[] buffer = new byte[is.available()];
-            is.read(buffer);
-            outStream.write(buffer);
-        } catch (FileNotFoundException e) {
+            while (is.read(buffer) > 0)
+                outStream.write(buffer);
+        } catch (IOException e) {
             log.error(e.toString());
-        } catch (IOException e2) {
-            log.error(e2.toString());
-        } finally {
-            if (outStream != null) {
-                try {
-                    outStream.close();
-                } catch (IOException e3) {
-                    log.error(e3.toString());
-                }
-            }
         }
-        if (outStream != null) {
-            try {
-                outStream.close();
-            } catch (IOException e3) {
-                log.error(e3.toString());
-            }
-        }
+
     }
 
-    private void processPomRelease(final String file) throws FileNotFoundException, IOException, XmlPullParserException, MavenInvocationException, ReleaserException {
-        log.info("-->Processing Pom " + file);
+    private void processPomRelease(final String file) throws IOException, XmlPullParserException, MavenInvocationException, ReleaserException {
+        log.info(PROCESSING_POM_INPUT + file);
         MavenXpp3Reader mavenreader = new MavenXpp3Reader();
         File pomfile = new File(file);
-        Model model = mavenreader.read((Reader) new FileReader(pomfile));
-        if (model.getVersion().indexOf("-SNAPSHOT") == -1) {
+        Model model = mavenreader.read(new FileReader(pomfile));
+        if (!model.getVersion().contains(SNAPSHOT_LITERAL)) {
             log.debug("The artifact " + model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + " is already a release");
             return;
         }
-        List<Dependency> deps = (List<Dependency>) model.getDependencies();
-        log.info("Processing dependencies...");
-        String artefact = "";
+        List<Dependency> deps = model.getDependencies();
+        log.info(PROCESSING_DEPENDENCIES);
+        String artefact;
         for (Dependency d : deps) {
             Model pom;
-            artefact = String.valueOf(d.getGroupId()) + "." + d.getArtifactId() + "." + d.getVersion();
+            artefact = d.getGroupId() + "." + d.getArtifactId() + "." + d.getVersion();
             log.debug(artefact);
             if (d.getVersion()!=null && d.getVersion().endsWith("SNAPSHOT")) {
                 log.debug(artefact + " is in SNAPSHOT, processing...");
-                log.debug("\tCheck in artifactoy if the release version of " + artefact + " already exists");
-                if (artifactoryHelper.getReleasedArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT"))) != null) {
+                log.debug("\tCheck in artifactoy if the release version of " + artefact + ALREADY_EXISTS);
+                if (artifactoryHelper.getReleasedArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion().substring(0, d.getVersion().indexOf(SNAPSHOT_LITERAL))) != null) {
                     log.debug(artefact + "\t in snapshot in the pom.xml but is already released");
-                    d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT")));
+                    d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf(SNAPSHOT_LITERAL)));
                     if (!Releaser.artefactsAlreadyReleased.containsKey(artefact))
                         Releaser.artefactsAlreadyReleased.put(artefact, artefact);
                     else
-                        log.warn("\tArtefact is already in the map " + artefact);
+                        log.warn(ARTEFACT_IS_ALREADY_IN_THE_MAP + artefact);
                     continue;
                 }
                 log.info("\tArtifact release not found at artifactory");
                 if ((pom = artifactoryHelper.getSnapshotArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion())) != null) {
                     doRelease(extractSCMUrl(pom.getScm()), String.valueOf(d.getArtifactId()) + System.currentTimeMillis());
-                    d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT")));
+                    d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf(SNAPSHOT_LITERAL)));
                     if (!Releaser.artefacts.containsKey(artefact))
                         Releaser.artefacts.put(artefact, artefact);
                      else
-                        log.warn("\tArtefact is already in the map " + artefact);
+                        log.warn(ARTEFACT_IS_ALREADY_IN_THE_MAP + artefact);
                 } else {
                     log.error("Artifact not found at repository");
                     if (!Releaser.artefactsNotInArtifactory.containsKey(artefact))
                         Releaser.artefactsNotInArtifactory.put(artefact, artefact);
                      else
-                        log.warn("\tArtefact is already in the map " + artefact);
+                        log.warn(ARTEFACT_IS_ALREADY_IN_THE_MAP + artefact);
                 }
             } else
                 log.debug("The artifact is a release, skiping");
@@ -380,9 +350,7 @@ public class Releaser implements CommandLineRunner {
          */
         writeModel(pomfile, model);
         scmMediator.commitFile(extractSCMUrl(model.getScm()),pomfile);
-
-        //commit(pomfile,model.getScm());
-        log.info("<--Processing Pom " + file);
+        log.info(PROCESSING_POM_OUTPUT + file);
     }
 
 
@@ -390,42 +358,42 @@ public class Releaser implements CommandLineRunner {
         final String path = tempDir + artefactName;
         log.info("--> ######## Prepare Started for Artefact " + artefactName);
         scmMediator.downloadProject(url, new File(path));
-        processPomPrepare(path + "/pom.xml");
+        processPomPrepare(path + POM_XML_LITERAL);
         log.info("<-- ######## Prepare Finished for Artefact " + artefactName);
     }
 
-    private void processPomPrepare(String file) throws FileNotFoundException, IOException, XmlPullParserException, MavenInvocationException, ReleaserException {
-        log.debug("Processin Pom " + file);
+    private void processPomPrepare(String file) throws IOException, XmlPullParserException, MavenInvocationException, ReleaserException {
+        log.debug(PROCESSING_POM_INPUT + file);
         final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
         final File pomfile = new File(file);
-        final Model model = mavenreader.read((Reader) new FileReader(pomfile));
-        if (model.getVersion().indexOf("-SNAPSHOT") == -1) {
+        final Model model = mavenreader.read(new FileReader(pomfile));
+        if (!model.getVersion().contains(SNAPSHOT_LITERAL)) {
             log.debug("The artifact " + model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + " is already a release");
             return;
         }
-        final List<Dependency> deps = (List<Dependency>) model.getDependencies();
-        log.debug("Processing dependencies...");
-        String artefact = "";
+        final List<Dependency> deps = model.getDependencies();
+        log.debug(PROCESSING_DEPENDENCIES);
+        String artefact;
         for (Dependency d : deps) {
             Model pom;
-            artefact = String.valueOf(d.getGroupId()) + "." + d.getArtifactId() + "." + d.getVersion();
+            artefact = d.getGroupId() + "." + d.getArtifactId() + "." + d.getVersion();
             if (d.getVersion()!=null && d.getVersion().endsWith("SNAPSHOT")) {
                 log.debug(artefact + " is in SNAPSHOT, processing...");
-                log.debug("\tCheck in artifactoy if the release version of " + artefact + " already exists");
-                if (artifactoryHelper.getReleasedArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT"))) != null) {
+                log.debug("\tCheck in artifactoy if the release version of " + artefact + ALREADY_EXISTS);
+                if (artifactoryHelper.getReleasedArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion().substring(0, d.getVersion().indexOf(SNAPSHOT_LITERAL))) != null) {
                     continue;
                 }
                 log.debug("\tArtifact release not found in artifactory");
                 if (!Releaser.artefacts.containsKey(artefact)) {
                     Releaser.artefacts.put(artefact, artefact);
-                    log.debug("\tCheck in artifactoy if the SNAPSHOT version of " + artefact + " already exists");
+                    log.debug("\tCheck in artifactoy if the SNAPSHOT version of " + artefact + ALREADY_EXISTS);
                     if ((pom = artifactoryHelper.getSnapshotArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion())) != null) {
                         doPrepare(extractSCMUrl(pom.getScm()), String.valueOf(d.getArtifactId()) + System.currentTimeMillis());
-                        d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf("-SNAPSHOT")));
+                        d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf(SNAPSHOT_LITERAL)));
                     } else
                         log.debug("\tArtifact snapshot not found in repository");
                 } else
-                    log.warn("\tArtefact is already in the map " + artefact);
+                    log.warn(ARTEFACT_IS_ALREADY_IN_THE_MAP + artefact);
             } else
                 log.debug(artefact + " is a release, skiping");
         }
@@ -438,17 +406,17 @@ public class Releaser implements CommandLineRunner {
         return svnURL.substring(svnURL.indexOf("http"));
     }
 
-    private void processPomSources(final String file) throws FileNotFoundException, IOException, XmlPullParserException, MavenInvocationException {
+    private void processPomSources(final String file) throws IOException, XmlPullParserException {
         log.debug("Processin Pom " + file);
         final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
         final File pomfile = new File(file);
-        final Model model = mavenreader.read((Reader) new FileReader(pomfile));
-        final List<Dependency> deps = (List<Dependency>) model.getDependencies();
-        log.debug("Processing dependencies...");
-        String artefact = "";
+        final Model model = mavenreader.read(new FileReader(pomfile));
+        final List<Dependency> deps = model.getDependencies();
+        log.debug(PROCESSING_DEPENDENCIES);
+        String artefact;
         for (final Dependency d : deps) {
-            artefact = String.valueOf(d.getGroupId()) + "." + d.getArtifactId() + "." + d.getVersion();
-            log.debug(String.valueOf(d.getGroupId()) + "." + d.getArtifactId() + "." + d.getVersion());
+            artefact = d.getGroupId() + "." + d.getArtifactId() + "." + d.getVersion();
+            log.debug(d.getGroupId() + "." + d.getArtifactId() + "." + d.getVersion());
             if (d.getGroupId().startsWith("com.mercury")) {
                 final InputStream is = artifactoryHelper.getArtifactSourceArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion(), true);
                 if (is == null) {
@@ -467,106 +435,11 @@ public class Releaser implements CommandLineRunner {
         }
     }
 
-    private boolean downloadProject(final String url, final File target) {
-        log.info("--> Downloading from SVN " + url);
-        DAVRepositoryFactory.setup();
-        final SVNClientManager manager = SVNClientManager.newInstance();
-        try {
-            final ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager(releaseArtifact.getUsername(), releaseArtifact.getPassword());
-            final SVNUpdateClient client = manager.getUpdateClient();
-            manager.setAuthenticationManager(authManager);
-            log.debug("Before checking out " + new Date());
-            final SVNURL svnURL = SVNURL.parseURIEncoded(url);
-            client.doCheckout(svnURL, target, SVNRevision.HEAD, SVNRevision.HEAD, SVNDepth.INFINITY, true);
-            log.debug("After checking out " + new Date());
-            log.debug("Artefact downloaded from SVN");
-            return true;
-        } catch (SVNException e) {
-            log.error("Error checking out project." + e);
-        } catch (Exception e2) {
-            log.debug("Error checking out project." + e2);
-        } finally {
-            manager.dispose();
-        }
-        log.info("<-- Downloading from SVN " + url);
-        return false;
-    }
-
-
-    private String getFilefromSVN(final String repositoryURL, final String filePath) {
-        SVNRepository repository = null;
-        final String file = null;
-        try {
-            repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(repositoryURL));
-            final ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager(releaseArtifact.getUsername(), releaseArtifact.getPassword());
-            repository.setAuthenticationManager(authManager);
-            final ByteArrayOutputStream os = new ByteArrayOutputStream();
-            final long num = repository.getFile(filePath, -1L, (SVNProperties) null, (OutputStream) os);
-            final String aString = new String(os.toByteArray(), "UTF-8");
-            return aString;
-        } catch (Exception e) {
-            log.debug("Error getting file." + e);
-            return file;
-        }
-    }
-
-
-    private String getPomURL(String file) {
-        log.debug("getPomURL->" + file);
-        String[] splits = null;
-        String url = null;
-        if (file != null) {
-            if (file.contains("/src/main")) {
-                splits = file.split("/src/main");
-                if (splits.length > 0) {
-                    url = String.valueOf(splits[0]) + "/pom.xml";
-                }
-            } else if (file.contains("/src/resources")) {
-                splits = file.split("/src/resources");
-                if (splits.length > 0) {
-                    url = String.valueOf(splits[0]) + "/pom.xml";
-                }
-
-            } else if (file.contains("pom.xml")) {
-                url = file;
-            } else {
-                int position = file.length();
-                boolean existPom = false;
-                String tentativePom = file;
-
-                while (!existPom && position > -1) {
-
-                    position = tentativePom.lastIndexOf("/");
-                    if (position > -1) {
-                        tentativePom = file.substring(0, position);
-                        log.debug(tentativePom + "/pom.xml");
-                        existPom = checkIfPathExist(tentativePom + "/pom.xml");
-                        if (existPom) {
-                            url = tentativePom + "/pom.xml";
-                        } else {
-                            log.debug("Pom does not exist");
-                        }
-                    }
-                }
-            }
-
-        }
-
-        log.debug("getPomURL<-");
-        return url;
-
-    }
-
     public void writeModel(final File pomFile, final Model model) throws IOException {
-        Writer writer = null;
-        try {
-            writer = new FileWriter(pomFile);
+        try (Writer writer = new FileWriter(pomFile)){
             final MavenXpp3Writer pomWriter = new MavenXpp3Writer();
             pomWriter.write(writer, model);
-        } finally {
-            IOUtil.close(writer);
         }
-        IOUtil.close(writer);
     }
 
     private String getArtifactInfo(final String file) {
@@ -574,8 +447,8 @@ public class Releaser implements CommandLineRunner {
         final File pomfile = new File(file);
         String artefactInfo = "";
         try {
-            final Model model = mavenreader.read((Reader) new FileReader(pomfile));
-            artefactInfo = String.valueOf(model.getGroupId()) + "." + model.getArtifactId() + "-" + model.getVersion();
+            final Model model = mavenreader.read(new FileReader(pomfile));
+            artefactInfo = model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion();
         } catch (IOException | XmlPullParserException ex2) {
 
             log.error(ex2.toString());
@@ -587,8 +460,6 @@ public class Releaser implements CommandLineRunner {
         final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
         final Artefact artefact = new Artefact();
         try {
-            File pomfile = new File(file);
-
             InputStreamReader fis = new InputStreamReader(new FileInputStream(file), java.nio.charset.StandardCharsets.UTF_8);
             final Model model = mavenreader.read(fis);
             artefact.setArtefactId(model.getArtifactId());
@@ -603,61 +474,42 @@ public class Releaser implements CommandLineRunner {
         return artefact;
     }
 
-    private Artefact getArtefactFromString(final String file) {
-        final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
-        final Artefact artefact = new Artefact();
-        try {
-            final InputStream stream = new ByteArrayInputStream(file.getBytes("UTF-8"));
-            final Model model = mavenreader.read(stream);
-            artefact.setArtefactId(model.getArtifactId());
-            artefact.setGroupId(model.getGroupId());
-            artefact.setVersion(model.getVersion());
-            if (model.getScm() != null) {
-                artefact.setScmURL(model.getScm().getDeveloperConnection());
-            }
-        } catch (IOException | XmlPullParserException ex2) {
-            log.error(ex2.toString());
-        }
-        return artefact;
-    }
-
-
     private String getNextVersion(String version, String branchName) {
         log.debug("-->getNextVersion");
         String nextVersion = "";
         log.debug("Current Version: " + version);
         log.debug("BranchName: " + branchName);
         try {
-            if (version.endsWith("-SNAPSHOT")) {
-                int snapshotPosition = version.indexOf("-SNAPSHOT");
+            if (version.endsWith(SNAPSHOT_LITERAL)) {
+                int snapshotPosition = version.indexOf(SNAPSHOT_LITERAL);
                 version = version.substring(0, snapshotPosition);
             }
-            if (branchName.endsWith("-SNAPSHOT")) {
-                int snapshotPosition = branchName.indexOf("-SNAPSHOT");
+            if (branchName.endsWith(SNAPSHOT_LITERAL)) {
+                int snapshotPosition = branchName.indexOf(SNAPSHOT_LITERAL);
                 branchName = branchName.substring(0, snapshotPosition);
             }
             branchName = new StringBuilder(branchName).reverse().toString();
-            int index = branchName.indexOf("-");
+            int index = branchName.indexOf('-');
             if (index == -1) {
                 nextVersion = incrementMiddle(version);
             } else {
                 branchName = branchName.substring(0, index);
                 branchName = new StringBuilder(branchName).reverse().toString();
-                int position = branchName.toUpperCase().indexOf("X");
+                int position = branchName.toUpperCase().indexOf('X');
                 if (position > -1) {
                     if (position == 2) {
-                        int position2 = version.indexOf(".", position + 1);
-                        Integer num = Integer.valueOf(version.substring(position, position2));
-                        num = Integer.valueOf(num.intValue() + 1);
-                        nextVersion = String.valueOf(version.substring(0, position)) + num;
-                        nextVersion = String.valueOf(nextVersion) + version.substring(position2, version.length());
+                        int position2 = version.indexOf('.', position + 1);
+                        int num = Integer.parseInt(version.substring(position, position2));
+                        num++;
+                        nextVersion = version.substring(0, position) + num;
+                        nextVersion = nextVersion + version.substring(position2);
                     }
                     if ((position == 4) || (position == 5)) {
-                        int position2 = version.indexOf(".", position);
+                        int position2 = version.indexOf('.', position);
                         position = (position2 > -1) ? position2 + 1 : position;
-                        Integer num = Integer.valueOf(version.substring(position, version.length()));
-                        num = Integer.valueOf(num.intValue() + 1);
-                        nextVersion = String.valueOf(version.substring(0, position)) + num;
+                        int num = Integer.parseInt(version.substring(position));
+                        num++;
+                        nextVersion = version.substring(0, position) + num;
                     }
                 }
             }
@@ -667,7 +519,7 @@ public class Releaser implements CommandLineRunner {
             nextVersion = "";
         }
         if (!nextVersion.equals("")) {
-            nextVersion = String.valueOf(nextVersion) + "-SNAPSHOT";
+            nextVersion = nextVersion + SNAPSHOT_LITERAL;
         }
 
         log.debug("New Version " + nextVersion);
@@ -680,13 +532,13 @@ public class Releaser implements CommandLineRunner {
         log.debug("-->getNextVersion");
         String newVersion = "";
         try {
-            final int position = version.indexOf(".");
-            final int position2 = version.indexOf(".", position + 1);
+            final int position = version.indexOf('.');
+            final int position2 = version.indexOf('.', position + 1);
             if (position == 1) {
-                Integer num = Integer.valueOf(version.substring(position + 1, position2));
+                int num = Integer.parseInt(version.substring(position + 1, position2));
                 ++num;
-                newVersion = String.valueOf(version.substring(0, position)) + "." + num;
-                newVersion = String.valueOf(newVersion) + version.substring(position2, version.length());
+                newVersion = version.substring(0, position) + "." + num;
+                newVersion = newVersion + version.substring(position2);
             }
         } catch (Exception e) {
             log.error("Error incrementing version of: " + version);
