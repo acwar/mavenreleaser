@@ -1,15 +1,10 @@
 package org.agrsw.mavenreleaser;
 
-import org.agrsw.mavenreleaser.Artefact;
-import org.agrsw.mavenreleaser.Releaser;
-import org.agrsw.mavenreleaser.JiraClient;
-
 import org.agrsw.mavenreleaser.enums.ProjectsEnum;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.slf4j.*;
-import org.springframework.beans.factory.annotation.Value;
 import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.SVNProperties;
 import org.tmatesoft.svn.core.SVNURL;
@@ -21,7 +16,6 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 import java.io.*;
 import java.util.Properties;
-import java.util.logging.Level;
 import java.util.regex.*;
 
 public class SVNChecker {
@@ -37,8 +31,8 @@ public class SVNChecker {
 
     private String notcheckTokenProperty;
 
-    public static String jiraUser = "";
-    public static String jiraPassword = "";
+    public static String user = "";
+    public static String pass = "";
 
     private String scmUser;
     private String commitMessage;
@@ -118,8 +112,8 @@ public class SVNChecker {
         Properties properties = loadProperties();
         repositoryURL = "http://192.168.10.2/svn/mercury";
         notcheckTokenProperty = properties.getProperty("notcheck.token","#NOTCHECK");
-        jiraUser=properties.getProperty("jira.user","");
-        jiraPassword=properties.getProperty("jira.password","");
+        user =properties.getProperty("jira.user","");
+        pass =properties.getProperty("jira.password","");
         projects = properties.getProperty("projects.list","MERCURY").split(",");
     }
 
@@ -209,7 +203,7 @@ public class SVNChecker {
         try {
             SVNRepository repository = null;
             repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(repositoryURL));
-            final ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager(releaseArtifact.getUsername(), releaseArtifact.getPassword());
+            final ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager(user, pass);
             repository.setAuthenticationManager(authManager);
             final SVNNodeKind nodeKind = repository.checkPath(path, -1L);
             if (nodeKind == SVNNodeKind.NONE) {
@@ -229,7 +223,7 @@ public class SVNChecker {
         final String file = null;
         try {
             repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(repositoryURL));
-            final ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager(getUsername(), getPassword());
+            final ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager(user, pass);
             repository.setAuthenticationManager(authManager);
             final ByteArrayOutputStream os = new ByteArrayOutputStream();
             final long num = repository.getFile(filePath, -1L, (SVNProperties) null, (OutputStream) os);
@@ -267,8 +261,8 @@ public class SVNChecker {
         log.info("Get the jira issue by key: " + issueKey);
         String message = "";
 
-        JiraClient.userName = jiraUser;
-        JiraClient.password = jiraPassword;
+        JiraClient.userName = user;
+        JiraClient.password = pass;
 
         final Artefact jiraIssueArtefact ;
         if ((jiraIssueArtefact=JiraClient.getIssueByKey(issueKey, true)) == null) {
