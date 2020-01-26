@@ -1,4 +1,4 @@
-package org.agrsw.mavenreleaser.helpers;
+package org.agrsw.mavenreleaser.services;
 
 import org.agrsw.mavenreleaser.beans.ReleaseArtifact;
 import org.agrsw.mavenreleaser.exception.ReleaserException;

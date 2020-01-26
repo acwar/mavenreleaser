@@ -1,11 +1,11 @@
-package org.agrsw.mavenreleaser.helpers.impl;
+package org.agrsw.mavenreleaser.services.impl;
 
 import org.agrsw.mavenreleaser.beans.ReleaseArtifact;
 import org.agrsw.mavenreleaser.dto.RepositoryDTO;
 import org.agrsw.mavenreleaser.enums.RepositoryTypeEnum;
 import org.agrsw.mavenreleaser.exception.ReleaserException;
 import org.agrsw.mavenreleaser.factory.RepositoryFactory;
-import org.agrsw.mavenreleaser.helpers.SCMMediator;
+import org.agrsw.mavenreleaser.services.SCMMediator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,13 +19,13 @@ public class SCMMediatorImpl implements SCMMediator {
 
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
+
     @Autowired
     private RepositoryFactory repositoryFactory;
 
     @Value("${notcheck.token}")
     private String notCheckToken;
 
-    //TODO add as parameter
     private ReleaseArtifact releaseArtifact;
 
     @Override

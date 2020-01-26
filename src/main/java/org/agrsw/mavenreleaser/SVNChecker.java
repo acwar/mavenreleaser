@@ -101,6 +101,8 @@ public class SVNChecker {
                 System.exit(0);
             }
         }
+        System.exit(10);
+        return 0;
     }
 
     public SVNChecker(String scmUser, String commitMessage, String[] svnFiles) {
