@@ -4,7 +4,7 @@
 
 	<groupId>com.mercurytfs.mercury</groupId>
 	<artifactId>mavenreleaser</artifactId>
-	<version>4.1.0-SNAPSHOT</version>
+	<version>4.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>mavenreleaser</name>
@@ -28,6 +28,19 @@
 		<developerConnection>scm:git:http://gitlabce.mercury-tfs.com/SantanderGTS/mavenreleaser.git</developerConnection>
 	  <tag>HEAD</tag>
   </scm>
+
+	<distributionManagement>
+		<repository>
+			<id>central</id>
+			<name>mercuryArtifactory-releases</name>
+			<url>http://192.168.10.2:8081/artifactory/libs-release-local</url>
+		</repository>
+		<snapshotRepository>
+			<id>snapshots</id>
+			<name>mercuryArtifactory-snapshots</name>
+			<url>http://192.168.10.2:8081/artifactory/libs-snapshot-local</url>
+		</snapshotRepository>
+	</distributionManagement>
 
 	<dependencies>
 		<dependency>
