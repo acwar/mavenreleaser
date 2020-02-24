@@ -13,7 +13,9 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Scm;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.apache.maven.shared.invoker.MavenInvocationException;
+import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,9 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.List;
 
 @Service
@@ -102,6 +102,11 @@ public class PomExplorerServiceImpl implements PomExplorerService {
             else
                 log.debug(artefact + " is a release, skiping");
         }
+
+        if (isRelease()){
+            writeModel(pomfile,model);
+            scmMediator.commitFile(extractSCMUrl(model.getScm()),pomfile);
+        }
         log.debug(PROCESSING_POM_OUTPUT + file);
         return  result;
     }
@@ -159,7 +164,18 @@ public class PomExplorerServiceImpl implements PomExplorerService {
         }
         return artefactInfo;
     }
-
+    public static void writeModel(final File pomFile, final Model model) throws IOException {
+        Writer writer = null;
+        try {
+            writer = new FileWriter(pomFile);
+            final MavenXpp3Writer pomWriter = new MavenXpp3Writer();
+            pomWriter.write(writer, model);
+        }
+        finally {
+            IOUtil.close(writer);
+        }
+        IOUtil.close(writer);
+    }
     private boolean isRelease(){
         return releaseArtifact.getReleaseAction() == ReleaseAction.RELEASE;
     }
