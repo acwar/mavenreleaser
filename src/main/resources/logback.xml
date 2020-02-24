@@ -32,7 +32,7 @@
         <appender-ref ref="File-Appender" />        
     </logger>
      -->
-    <logger name="org.agrsw.mavenreleaser"  level="DEBUG" additivity="false">
+    <logger name="com.mercurytfs.mercury"  level="DEBUG" additivity="false">
         <appender-ref ref="Console-Appender" />
         <appender-ref ref="RollingFile-Appender" />        
     </logger>
