@@ -4,7 +4,7 @@
 
 	<groupId>com.mercurytfs.mercury</groupId>
 	<artifactId>mavenreleaser</artifactId>
-	<version>4.0.0</version>
+	<version>4.1.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>mavenreleaser</name>
@@ -26,7 +26,7 @@
 	<scm>
 		<connection>scm:git:http://gitlabce.mercury-tfs.com/SantanderGTS/mavenreleaser.git</connection>
 		<developerConnection>scm:git:http://gitlabce.mercury-tfs.com/SantanderGTS/mavenreleaser.git</developerConnection>
-	  <tag>mavenreleaser-4.0.0</tag>
+	  <tag>HEAD</tag>
   </scm>
 
 	<dependencies>
