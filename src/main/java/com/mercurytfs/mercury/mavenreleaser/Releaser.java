@@ -82,6 +82,7 @@ public class Releaser implements CommandLineRunner {
                 case PREPARE:
                 case SOURCES:
                     result = pomExplorer.configure(releaseArtifact).launch();
+                    //TODO Given the result, compute nextVersions and store a XML to feed releaser
                     logArtifacts(ARTEFACTOS_ENCONTRADOS, result.getArtefacts().keySet());
                     break;
                 default:
