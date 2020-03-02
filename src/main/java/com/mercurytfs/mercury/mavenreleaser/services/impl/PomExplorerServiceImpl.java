@@ -143,13 +143,14 @@ public class PomExplorerServiceImpl implements PomExplorerService {
             downloadAndProcess(extractSCMUrl(pom.getScm()), String.valueOf(d.getArtifactId()) + System.currentTimeMillis());
             d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf(SNAPSHOT_LITERAL)));
             if (!result.getArtefacts().containsKey(artefact)) {
-                result.getArtefactsVersions().put(artefact,new ArtifactVersion(pom.getGroupId(), pom.getArtifactId(), pom.getVersion(),"",extractSCMUrl(pom.getScm())));
+                result.getArtefactsVersions().put(artefact,new ArtifactVersion(pom.getGroupId(), pom.getArtifactId(), pom.getVersion(),extractSCMUrl(pom.getScm())));
                 result.getArtefacts().put(artefact, artefact);
             }
             else
                 log.warn(ARTEFACT_IS_ALREADY_IN_THE_MAP + artefact);
         } else {
             log.error("Artifact not found at repository");
+            //TODO If Mercury artifact, not found anywhere, Maybe not in Jenkins?
             if (!result.getArtefactsNotInArtifactory().containsKey(artefact))
                 result.getArtefactsNotInArtifactory().put(artefact, artefact);
             else
