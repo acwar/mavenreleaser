@@ -10,6 +10,10 @@ import org.springframework.context.annotation.PropertySource;
 @PropertySource({ "classpath:config.properties" })
 public class Config
 {
+    private Config(){
+        throw new IllegalStateException("Utility class");
+    }
+
     @Bean
     public static PropertySourcesPlaceholderConfigurer propertyConfigInDev() {
         return new PropertySourcesPlaceholderConfigurer();

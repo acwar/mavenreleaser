@@ -13,7 +13,7 @@ public class Artefact
     private List<Artefact> issueslinked;
     
     public Artefact() {
-        this.issueslinked = new ArrayList<Artefact>();
+        this.issueslinked = new ArrayList<>();
     }
     
     public String getArtefactId() {

@@ -1,8 +1,8 @@
 package com.mercurytfs.mercury.mavenreleaser.services.impl;
 
 import com.mercurytfs.mercury.mavenreleaser.Artefact;
-import com.mercurytfs.mercury.mavenreleaser.Releaser;
 import com.mercurytfs.mercury.mavenreleaser.helpers.ConsoleHelper;
+import com.mercurytfs.mercury.mavenreleaser.helpers.NewVersionHelper;
 import com.mercurytfs.mercury.mavenreleaser.services.MavenService;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
@@ -21,9 +21,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+/**
+   __  __
+ |  \/  | __ ___   _____ _ __
+ | |\/| |/ _` \ \ / / _ \ '_ \
+ | |  | | (_| |\ V /  __/ | | |
+ |_|  |_|\__,_| \_/ \___|_| |_|
+  ___                 _
+ |_ _|_ ____   _____ | | _____ _ __
+  | || '_ \ \ / / _ \| |/ / _ \ '__|
+  | || | | \ V / (_) |   <  __/ |
+ |___|_| |_|\_/ \___/|_|\_\___|_|
+
+ *
+ */
 @Service
 public class MavenServiceImpl implements MavenService {
-    private Logger log = LoggerFactory.getLogger(Releaser.class);
+    private Logger log = LoggerFactory.getLogger(MavenServiceImpl.class);
 
     public static final String SNAPSHOT_LITERAL = "-SNAPSHOT";
     public static final String USERNAME_LITERAL = "username";
@@ -39,7 +53,7 @@ public class MavenServiceImpl implements MavenService {
         Artefact artefact = getArtefactFromFile(pom);
 
         log.info("Current Version : " + artefact.getVersion());
-        final String autoVersion = getNextVersion(artefact.getVersion(), artefact.getScmURL());
+        final String autoVersion = NewVersionHelper.getNextVersion(artefact.getVersion(), artefact.getScmURL());
         String nextVersion = ConsoleHelper.getLineFromConsole("Type the new version (" + autoVersion + "): ");
         if (nextVersion.equals("")) {
             nextVersion = autoVersion;
@@ -125,75 +139,5 @@ public class MavenServiceImpl implements MavenService {
         return artefact;
     }
 
-    private String getNextVersion(String version, String branchName) {
-        log.debug("-->getNextVersion");
-        String nextVersion = "";
-        log.debug("Current Version: " + version);
-        log.debug("BranchName: " + branchName);
-        try {
-            if (version.endsWith(SNAPSHOT_LITERAL)) {
-                int snapshotPosition = version.indexOf(SNAPSHOT_LITERAL);
-                version = version.substring(0, snapshotPosition);
-            }
-            if (branchName.endsWith(SNAPSHOT_LITERAL)) {
-                int snapshotPosition = branchName.indexOf(SNAPSHOT_LITERAL);
-                branchName = branchName.substring(0, snapshotPosition);
-            }
-            branchName = new StringBuilder(branchName).reverse().toString();
-            int index = branchName.indexOf('-');
-            if (index == -1) {
-                nextVersion = incrementMiddle(version);
-            } else {
-                branchName = branchName.substring(0, index);
-                branchName = new StringBuilder(branchName).reverse().toString();
-                int position = branchName.toUpperCase().indexOf('X');
-                if (position > -1) {
-                    if (position == 2) {
-                        int position2 = version.indexOf('.', position + 1);
-                        int num = Integer.parseInt(version.substring(position, position2));
-                        num++;
-                        nextVersion = version.substring(0, position) + num;
-                        nextVersion = nextVersion + version.substring(position2);
-                    }
-                    if ((position == 4) || (position == 5)) {
-                        int position2 = version.indexOf('.', position);
-                        position = (position2 > -1) ? position2 + 1 : position;
-                        int num = Integer.parseInt(version.substring(position));
-                        num++;
-                        nextVersion = version.substring(0, position) + num;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.error(e.toString());
-            log.info("The Next Version could not be discover automatically");
-            nextVersion = "";
-        }
-        if (!nextVersion.equals("")) {
-            nextVersion = nextVersion + SNAPSHOT_LITERAL;
-        }
 
-        log.debug("New Version " + nextVersion);
-        log.debug("<--getNextVersion");
-        return nextVersion;
-    }
-
-    private String incrementMiddle(final String version) {
-        log.debug("-->getNextVersion");
-        String newVersion = "";
-        try {
-            final int position = version.indexOf('.');
-            final int position2 = version.indexOf('.', position + 1);
-            if (position == 1) {
-                int num = Integer.parseInt(version.substring(position + 1, position2));
-                ++num;
-                newVersion = version.substring(0, position) + "." + num;
-                newVersion = newVersion + version.substring(position2);
-            }
-        } catch (Exception e) {
-            log.error("Error incrementing version of: " + version);
-        }
-        log.debug("<--getNextVersion");
-        return newVersion;
-    }
 }

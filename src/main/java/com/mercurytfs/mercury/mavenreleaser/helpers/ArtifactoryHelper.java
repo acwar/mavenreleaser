@@ -21,10 +21,10 @@ import java.util.List;
 public class ArtifactoryHelper {
     private Logger log = LoggerFactory.getLogger( this.getClass());
 
-    private final String repoSnapshot1 = "libs-snapshot-local";
-    private final String repoSnapshot2 = "libs-snapshot-santander";
-    private final String repoRelease1 = "libs-release-santander";
-    private final String repoRelease2 = "libs-release-local";
+    private static final String repoSnapshot1 = "libs-snapshot-local";
+    private static final String repoSnapshot2 = "libs-snapshot-santander";
+    private static final String repoRelease1 = "libs-release-santander";
+    private static final String repoRelease2 = "libs-release-local";
 
 
     @Setter @Getter
@@ -64,7 +64,7 @@ public class ArtifactoryHelper {
         return ArtifactoryClient.create("http://192.168.10.2:8081/artifactory/", getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());
     }
 
-    public InputStream getArtifactSourceArtifactory(final String groupId, final String artifactId, final String version, final boolean release) throws IOException, XmlPullParserException {
+    public InputStream getArtifactSourceArtifactory(final String groupId, final String artifactId, final String version, final boolean release){
         Artifactory artifactory = getArtifactoryClient();
 
         final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, (release) ? repoRelease1 : repoSnapshot1, (release) ? repoRelease2 : repoSnapshot2);
@@ -86,6 +86,6 @@ public class ArtifactoryHelper {
     }
 
     private List<RepoPath> getResults(String groupId, String artifactId, String version, Artifactory artifactory, String s, String s2) {
-        return (List<RepoPath>) artifactory.searches().artifactsByGavc().groupId(groupId).artifactId(artifactId).version(version).repositories(new String[]{s, s2}).doSearch();
+        return artifactory.searches().artifactsByGavc().groupId(groupId).artifactId(artifactId).version(version).repositories(new String[]{s, s2}).doSearch();
     }
 }

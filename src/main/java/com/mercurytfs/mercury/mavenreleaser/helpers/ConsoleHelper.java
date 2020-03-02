@@ -24,6 +24,9 @@ public class ConsoleHelper {
     static{
         log = LoggerFactory.getLogger(ConsoleHelper.class);
     }
+    private ConsoleHelper(){
+        throw new IllegalStateException("Utility class");
+    }
 
     public static ReleaseArtifact interpretReleaseArtifact(CommandLine cmd) throws ParseException {
         ReleaseArtifact tempreleaseArtifact = new ReleaseArtifact();

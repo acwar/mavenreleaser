@@ -1,6 +1,7 @@
 package com.mercurytfs.mercury.mavenreleaser.services.impl;
 
 import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtifact;
+import com.mercurytfs.mercury.mavenreleaser.dto.ArtifactVersion;
 import com.mercurytfs.mercury.mavenreleaser.exception.ReleaserException;
 import com.mercurytfs.mercury.mavenreleaser.helpers.ArtifactoryHelper;
 import lombok.Getter;
@@ -15,7 +16,6 @@ import org.apache.maven.model.Scm;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.apache.maven.shared.invoker.MavenInvocationException;
-import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +26,20 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.util.List;
 
+/**
+ *
+  ____                 _____            _
+ |  _ \ ___  _ __ ___ | ____|_  ___ __ | | ___  _ __ ___ _ __
+ | |_) / _ \| '_ ` _ \|  _| \ \/ / '_ \| |/ _ \| '__/ _ \ '__|
+ |  __/ (_) | | | | | | |___ >  <| |_) | | (_) | | |  __/ |
+ |_|   \___/|_| |_| |_|_____/_/\_\ .__/|_|\___/|_|  \___|_|
+  ____                  _        |_|
+ / ___|  ___ _ ____   _(_) ___ ___
+ \___ \ / _ \ '__\ \ / / |/ __/ _ \
+  ___) |  __/ |   \ V /| | (_|  __/
+ |____/ \___|_|    \_/ |_|\___\___|
+
+ */
 @Service
 public class PomExplorerServiceImpl implements PomExplorerService {
     public static final String PROCESSING_DEPENDENCIES = "Processing dependencies...";
@@ -62,8 +76,7 @@ public class PomExplorerServiceImpl implements PomExplorerService {
     @Override
     public ReleaseArtefactResult launch() throws MavenInvocationException, XmlPullParserException, ReleaserException, IOException {
         ReleaseArtefactResult result = new ReleaseArtefactResult();
-        downloadAndProcess(releaseArtifact.getUrl(), releaseArtifact.getArtefactName() + "-" + System.currentTimeMillis());
-        return result;
+        return result.addAll(downloadAndProcess(releaseArtifact.getUrl(), releaseArtifact.getArtefactName() + "-" + System.currentTimeMillis()));
     }
     @Override
     public ReleaseArtefactResult downloadAndProcess(String url, String artefactName) throws IOException, XmlPullParserException, MavenInvocationException, ReleaserException {
@@ -129,8 +142,10 @@ public class PomExplorerServiceImpl implements PomExplorerService {
         if ((pom = artifactoryHelper.getSnapshotArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion())) != null) {
             downloadAndProcess(extractSCMUrl(pom.getScm()), String.valueOf(d.getArtifactId()) + System.currentTimeMillis());
             d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf(SNAPSHOT_LITERAL)));
-            if (!result.getArtefacts().containsKey(artefact))
+            if (!result.getArtefacts().containsKey(artefact)) {
+                result.getArtefactsVersions().put(artefact,new ArtifactVersion(pom.getGroupId(), pom.getArtifactId(), pom.getVersion(),"",extractSCMUrl(pom.getScm())));
                 result.getArtefacts().put(artefact, artefact);
+            }
             else
                 log.warn(ARTEFACT_IS_ALREADY_IN_THE_MAP + artefact);
         } else {
@@ -159,22 +174,15 @@ public class PomExplorerServiceImpl implements PomExplorerService {
             final Model model = mavenreader.read(new FileReader(pomfile));
             artefactInfo = model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion();
         } catch (IOException | XmlPullParserException ex2) {
-
             log.error(ex2.toString());
         }
         return artefactInfo;
     }
     public static void writeModel(final File pomFile, final Model model) throws IOException {
-        Writer writer = null;
-        try {
-            writer = new FileWriter(pomFile);
+        try (Writer writer = new FileWriter(pomFile)){
             final MavenXpp3Writer pomWriter = new MavenXpp3Writer();
             pomWriter.write(writer, model);
         }
-        finally {
-            IOUtil.close(writer);
-        }
-        IOUtil.close(writer);
     }
     private boolean isRelease(){
         return releaseArtifact.getReleaseAction() == ReleaseAction.RELEASE;
