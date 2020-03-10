@@ -1,21 +1,26 @@
 package com.mercurytfs.mercury.mavenreleaser;
 
-import org.springframework.boot.autoconfigure.*;
-import org.slf4j.*;
-import org.apache.http.*;
-import org.springframework.http.client.support.*;
-import org.springframework.util.*;
-import org.springframework.http.client.*;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpHost;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.*;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.web.client.*;
-import java.util.*;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.support.BasicAuthorizationInterceptor;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
 @SpringBootApplication
 public class JiraClient
 {
-    private static final Logger log;
     private static String apiURL;
     public static String userName;
     public static String password;
@@ -24,10 +29,11 @@ public class JiraClient
     public static int port;
     
     static {
-        log = LoggerFactory.getLogger((Class)JiraClient.class);             
         JiraClient.jiraURL = "http://192.168.10.21:8080/rest/api/2/";
         JiraClient.hostName = "192.168.10.21";
         JiraClient.port = 8080;
+        JiraClient.userName = "admin1";
+        JiraClient.password = "mer01cury.";
     }
     
 
@@ -36,14 +42,14 @@ public class JiraClient
         String key = null;
         Artefact artefact = null;
         String description = null;
-        JiraClient.log.info("->getIssueKey: " + project + "-" + component + "-" + version);
+        log.info("Searching for the key of the issue: " + project + "-" + component + "-" + version);
         try {
             final HttpHost host = new HttpHost(JiraClient.hostName, JiraClient.port, "http");
             final ClientHttpRequestFactory requestFactory = (ClientHttpRequestFactory)new HttpComponentsClientHttpRequestFactoryBasicAuth(host);
             final RestTemplate restTemplate = new RestTemplate(requestFactory);
             restTemplate.getInterceptors().add(new BasicAuthorizationInterceptor(JiraClient.userName, JiraClient.password));
-            final String queryString = String.valueOf(JiraClient.jiraURL) + "search?jql=project=" + project + " AND issuetype = \"Artefacto Maven\" AND component=" + component + " AND fixVersion = " + version + " AND status in (Open, \"In Progress\", Reopened)";
-            JiraClient.log.debug(queryString);
+            final String queryString = String.valueOf(JiraClient.jiraURL) + "search?jql=project=" + project + " AND issuetype = \"Artefacto Maven\" AND component=" + component + " AND fixVersion = " + version + " AND status in (\"Open\", \"In Progress\", \"Reopened\")";
+            //log.debug(queryString);
             final ResponseEntity<Object> obj = (ResponseEntity<Object>)restTemplate.exchange(queryString, HttpMethod.GET, (HttpEntity)null, (Class)Object.class, new Object[0]);
             if (obj != null) {
                 if (obj.getStatusCode().is2xxSuccessful()) {
@@ -60,30 +66,30 @@ public class JiraClient
                         artefact.setDescription(description);
                     }
                     else {
-                        JiraClient.log.warn("Issue Not Found");
+                        log.warn("Issue Not Found");
                     }
                 }
                 else {
-                    JiraClient.log.error("Error in request to jira: " + obj.getStatusCodeValue() + ":" + obj.getBody());
+                    log.error("Error in request to jira: " + obj.getStatusCodeValue() + ":" + obj.getBody());
                 }
             }
         }
         catch (Exception e) {
             if (e instanceof HttpClientErrorException) {
-                JiraClient.log.error(((HttpClientErrorException)e).getResponseBodyAsString());
+                log.error(((HttpClientErrorException)e).getResponseBodyAsString());
             }
             else {
-                JiraClient.log.error(e.toString());
+                log.error(e.toString());
             }
         }
-        JiraClient.log.info("<-getIssueKey: " + project + "-" + component + "-" + version);
+        log.info("Retrieved the key of issue: " + project + "-" + component + "-" + version + " successfully");
         return artefact;
     }
     
     public static Artefact getIssueByKey(String key, final boolean unresolved) {
         Artefact artefact = null;
         String description = null;
-        JiraClient.log.info("->getIssueByKey: " + key);
+        log.info("->getIssueByKey: " + key);
         try {
             final HttpHost host = new HttpHost(JiraClient.hostName, JiraClient.port, "http");
             final ClientHttpRequestFactory requestFactory = (ClientHttpRequestFactory)new HttpComponentsClientHttpRequestFactoryBasicAuth(host);
@@ -93,7 +99,7 @@ public class JiraClient
             if (unresolved) {
                 queryString = String.valueOf(queryString) + " and  resolution = Unresolved";
             }
-            JiraClient.log.debug(queryString);
+            log.debug(queryString);
             final ResponseEntity<Object> obj = (ResponseEntity<Object>)restTemplate.exchange(queryString, HttpMethod.GET, (HttpEntity)null, (Class)Object.class, new Object[0]);
             if (obj != null) {
                 if (obj.getStatusCode().is2xxSuccessful()) {
@@ -122,42 +128,42 @@ public class JiraClient
                                     artefact.getIssueslinked().add(issueLinked);
                                 }
                                 else {
-                                    JiraClient.log.error("Cannot get issue key from " + issueMap.toString());
+                                    log.error("Cannot get issue key from " + issueMap.toString());
                                 }
                             }
                         }
                     }
                     else {
-                        JiraClient.log.warn("Issue Not Found");
+                        log.warn("Issue Not Found");
                     }
                 }
                 else {
-                    JiraClient.log.error("Error in request to jira: " + obj.getStatusCodeValue() + ":" + obj.getBody());
+                    log.error("Error in request to jira: " + obj.getStatusCodeValue() + ":" + obj.getBody());
                 }
             }
         }
         catch (Exception e) {
             if (e instanceof HttpClientErrorException) {
-                JiraClient.log.error(((HttpClientErrorException)e).getResponseBodyAsString());
+                log.error(((HttpClientErrorException)e).getResponseBodyAsString());
             }
             else {
-                JiraClient.log.error(e.toString());
+                log.error(e.toString());
             }
         }
-        JiraClient.log.info("<-getIssueByKey: " + key);
+        log.info("<-getIssueByKey: " + key);
         return artefact;
     }
     
     public static String closeIssue(final String key) {
         String result = key;
-        JiraClient.log.info("->closeIssue: " + key);
+        log.info("Closing issue: " + key);
         try {
             final HttpHost host = new HttpHost(JiraClient.hostName, JiraClient.port, "http");
             final ClientHttpRequestFactory requestFactory = (ClientHttpRequestFactory)new HttpComponentsClientHttpRequestFactoryBasicAuth(host);
             final RestTemplate restTemplate = new RestTemplate(requestFactory);
             restTemplate.getInterceptors().add(new BasicAuthorizationInterceptor(JiraClient.userName, JiraClient.password));
             final String queryString = String.valueOf(JiraClient.jiraURL) + "issue/" + key + "/transitions";
-            JiraClient.log.debug(queryString);
+            //log.debug(queryString);
             final ResponseEntity<Object> obj2 = (ResponseEntity<Object>)restTemplate.exchange(queryString, HttpMethod.GET, (HttpEntity)null, (Class)Object.class, new Object[0]);
             final Map map = (HashMap)obj2.getBody();
             final ArrayList<Map> transitions = (ArrayList<Map>)map.get("transitions");
@@ -179,50 +185,50 @@ public class JiraClient
                 final ResponseEntity<String> response = (ResponseEntity<String>)restTemplate.exchange(String.valueOf(JiraClient.jiraURL) + "issue/" + key + "/transitions", HttpMethod.POST, (HttpEntity)entity, (Class)String.class, new Object[0]);
                 if (response != null) {
                     if (response.getStatusCode().is2xxSuccessful()) {
-                        JiraClient.log.info("Tarea cerrada correctamente: " + key);
+                        log.info("Task closed successfully: " + key);
                     }
                 }
                 else {
                     result = null;
-                    JiraClient.log.error("Error al cerrar la tarea: " + response.getStatusCodeValue() + ":" + (String)response.getBody());
+                    log.error("Error closing the task: " + response.getStatusCodeValue() + ":" + (String)response.getBody());
                 }
             }
         }
         catch (Exception e) {
             if (e instanceof HttpClientErrorException) {
-                JiraClient.log.error(((HttpClientErrorException)e).getResponseBodyAsString());
+                log.error(((HttpClientErrorException)e).getResponseBodyAsString());
             }
             else {
-                JiraClient.log.error(e.toString());
+                log.error(e.toString());
             }
         }
-        JiraClient.log.info("<-closeIssue: " + key);
+        //log.info("<-closeIssue: " + key);
         return result;
     }
     
     public static String createIssue(final String project, final String summary, String descripcion, final String component, final String currentVersion, final String fixVersion) {
-    	String logMessage = "createIssue:";
+    	String logMessage = "Creating new Issue: \n";
     	if (project!=null){
-    		logMessage += " project: "+ project;
+    		logMessage += " project: "+ project + "\n";
     	} 
     	if (summary!=null){
-    		logMessage += " summary: " + summary;
+    		logMessage += " summary: " + summary + "\n";
     	}
     	if (descripcion!=null){
-    		logMessage += " descripcion: "+ descripcion;
+    		logMessage += " descripcion: "+ descripcion + "\n";
     	} else {
-    		descripcion = "";
+    		descripcion = "" + "\n";
     	}
     	if (component!=null){
-    		logMessage += " component: " + component;
+    		logMessage += " component: " + component + "\n";
     	}
     	if (currentVersion!=null){
-    		logMessage += " currentVersion: " + currentVersion;
+    		logMessage += " currentVersion: " + currentVersion + "\n";
     	}
     	if (fixVersion!=null){
-    		logMessage += " fixVersion: "+ fixVersion;
+    		logMessage += " fixVersion: "+ fixVersion + "\n";
     	}
-        JiraClient.log.info("-> " + logMessage);
+        log.info(logMessage);
         String key = null;
         
         
@@ -230,10 +236,8 @@ public class JiraClient
             final String fixDescripcion = fixCarrierReturn(descripcion);
             final String jsonCreate = "{\"fields\": {\"project\":{\"key\": \"" + project + "\"},\"summary\": \"" + summary + "\", \"fixVersions\" : [  {\"name\" : \"" + fixVersion + "\"}],\"versions\" : [  {\"name\" : \"" + currentVersion + "\"}],\"description\": \"" + fixDescripcion + "\", \"components\": [{\"name\":\"" + component + "\"}],\"issuetype\": {\"name\": \"Artefacto Maven\"}}}";
             HttpHeaders headers = new HttpHeaders();
-            headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);           
+            headers.setContentType(MediaType.APPLICATION_JSON);
             final HttpEntity<String> entity = (HttpEntity<String>)new HttpEntity((Object)jsonCreate, (MultiValueMap)headers);
-            JiraClient.log.info(jsonCreate);
             final HttpHost host = new HttpHost(JiraClient.hostName, JiraClient.port, "http");
             final ClientHttpRequestFactory requestFactory = (ClientHttpRequestFactory)new HttpComponentsClientHttpRequestFactoryBasicAuth(host);
             final RestTemplate restTemplate = new RestTemplate(requestFactory);
@@ -243,22 +247,22 @@ public class JiraClient
                 if (response.getStatusCode().is2xxSuccessful()) {
                     final Map map = (HashMap)response.getBody();
                     key = (String) map.get("key");
-                    JiraClient.log.info("Tarea creada correctamente: " + key);
+                    log.info("Task created successfully, the new task is: " + key);
                 }
             }
             else {
-                JiraClient.log.error("Error al cerrar la tarea: " + response.getStatusCodeValue() + ":" + response.getBody());
+                log.error("Error creating the new task: " + response.getStatusCodeValue() + ":" + response.getBody());
             }
         }
         catch (Exception e) {
             if (e instanceof HttpClientErrorException) {
-                JiraClient.log.error(((HttpClientErrorException)e).getResponseBodyAsString());
+                log.error(((HttpClientErrorException)e).getResponseBodyAsString());
             }
             else {
-                JiraClient.log.error(e.toString());
+                log.error(e.toString());
             }
         }
-        JiraClient.log.info("<- " + logMessage);
+        //log.info("<- " + logMessage);
         return key;
     }
     
@@ -278,7 +282,7 @@ public class JiraClient
     		descripcion = "";
     	}
     	    
-        JiraClient.log.info("-> " + logMessage);
+        //log.info("-> " + logMessage);
         String key = null;
         
         
@@ -289,7 +293,7 @@ public class JiraClient
             headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);           
             final HttpEntity<String> entity = (HttpEntity<String>)new HttpEntity((Object)jsonCreate, (MultiValueMap)headers);
-            JiraClient.log.info(jsonCreate);
+            //log.info(jsonCreate);
             final HttpHost host = new HttpHost(JiraClient.hostName, JiraClient.port, "http");
             final ClientHttpRequestFactory requestFactory = (ClientHttpRequestFactory)new HttpComponentsClientHttpRequestFactoryBasicAuth(host);
             final RestTemplate restTemplate = new RestTemplate(requestFactory);
@@ -299,22 +303,22 @@ public class JiraClient
                 if (response.getStatusCode().is2xxSuccessful()) {
                     final Map map = (HashMap)response.getBody();
                     key = (String) map.get("name");
-                    JiraClient.log.info("Version creada correctamente: " + key);
+                    //log.info("Version creada correctamente: " + key);
                 }
             }
             else {
-                JiraClient.log.error("Error al cerrar la tarea: " + response.getStatusCodeValue() + ":" + response.getBody());
+              //  log.error("Error al cerrar la tarea: " + response.getStatusCodeValue() + ":" + response.getBody());
             }
         }
         catch (Exception e) {
             if (e instanceof HttpClientErrorException) {
-                JiraClient.log.error(((HttpClientErrorException)e).getResponseBodyAsString());
+                log.error(((HttpClientErrorException)e).getResponseBodyAsString());
             }
             else {
-                JiraClient.log.error(e.toString());
+                log.error(e.toString());
             }
         }
-        JiraClient.log.info("<- " + logMessage);
+        //log.info("<- " + logMessage);
         return key;
     }
     
