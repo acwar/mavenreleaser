@@ -5,6 +5,7 @@ import lombok.Getter;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ReleaseArtefactResult {
     @Getter
@@ -33,5 +34,29 @@ public class ReleaseArtefactResult {
         jirasNotReleased.putAll(input.getJirasNotReleased());
         jirasReleased.putAll(input.getJirasReleased());
         return this;
+    }
+
+    public void addJirasNotReleased(String artefactKey, Artefact artefact){
+        jirasNotReleased.put(artefactKey,artefact);
+    }
+    public void addJirasReleased(String artefactKey, Artefact artefact){
+        jirasReleased.put(artefactKey,artefact);
+    }
+    @Override
+    public String toString(){
+        return "\n" +
+        "Status of artefacts:" + "\n" +
+        "Artefacts:" + "\n" + convertWithStream(artefacts) + "\n" +
+        "Artefacts already released: " + "\n" + convertWithStream(artefactsAlreadyReleased) + "\n" +
+        "Artefacts not in artifactory: " + "\n" + convertWithStream(artefactsNotInArtifactory) + "\n" +
+        "Jiras not released: " + "\n" + convertWithStream(jirasNotReleased) + "\n" +
+        "Jiras released: " + "\n" + convertWithStream(jirasReleased) + "\n";
+    }
+
+    private  String convertWithStream(Map<?, ?> map) {
+        String mapAsString = map.keySet().stream()
+                .map(key -> key + "=" + map.get(key))
+                .collect(Collectors.joining(", ", "{", "}"));
+        return mapAsString;
     }
 }

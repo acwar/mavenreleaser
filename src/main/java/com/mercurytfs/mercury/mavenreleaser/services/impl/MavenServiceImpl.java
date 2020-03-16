@@ -2,6 +2,7 @@ package com.mercurytfs.mercury.mavenreleaser.services.impl;
 
 import com.mercurytfs.mercury.mavenreleaser.Artefact;
 import com.mercurytfs.mercury.mavenreleaser.Releaser;
+import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtefactResult;
 import com.mercurytfs.mercury.mavenreleaser.helpers.ConsoleHelper;
 import com.mercurytfs.mercury.mavenreleaser.services.MavenService;
 import org.apache.maven.model.Model;
@@ -10,6 +11,7 @@ import org.apache.maven.shared.invoker.*;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -33,8 +35,11 @@ public class MavenServiceImpl implements MavenService {
     @Value("${maven.home}")
     private String mavenHome;
 
+    @Autowired
+    private JiraHelper jiraHelper;
+
     @Override
-    public void invokeReleaser(String pom,String user,String pass) throws MavenInvocationException {
+    public void invokeReleaser(String pom,String user,String pass, ReleaseArtefactResult releaseArtefactResult) throws MavenInvocationException {
         InvocationRequest request = new DefaultInvocationRequest();
         Artefact artefact = getArtefactFromFile(pom);
 
@@ -77,34 +82,7 @@ public class MavenServiceImpl implements MavenService {
             final int snapshotPosition = nextVersion.indexOf(SNAPSHOT_LITERAL);
             nextVersion = nextVersion.substring(0, snapshotPosition);
         }
-//        final String project = ProjectsEnum.getProjectNameFromGroupId(artefact.getGroupId());
-//        if (!project.equals("")) {
-//            final Artefact arti = JiraClient.getIssueKey(project, artefact.getArtefactId(), version);
-//            if (arti == null) {
-//                Releaser.jirasNotReleased.put(artefact.getGroupId() + artefact.getArtefactId(), artefact);
-//                log.error("Cannot find jira issue for artefact: " + artefact);
-//            } else {
-//                JiraClient.createVersion(project, nextVersion, nextVersion);
-//                final String newIssue = JiraClient.createIssue(project, artefact.getArtefactId() + "-" + nextVersion, arti.getDescription(), artefact.getArtefactId(), version, nextVersion);
-//                if (newIssue == null) {
-//                    Releaser.jirasNotReleased.put(artefact.getGroupId() + artefact.getArtefactId(), artefact);
-//                    log.error("Cannot create jira issue for artefact: " + artefact);
-//                } else {
-//                    final String oldIssue = JiraClient.closeIssue(arti.getJiraIssue());
-//                    if (oldIssue == null) {
-//                        Releaser.jirasNotReleased.put(artefact.getGroupId() + artefact.getArtefactId(), artefact);
-//                        log.error("Cannot close jira issue for artefact: " + artefact);
-//                    } else {
-//                        artefact.setJiraIssue(newIssue);
-//                        Releaser.jirasReleased.put(artefact.getGroupId() + artefact.getArtefactId(), artefact);
-//                        log.error("jira issue released: " + artefact);
-//                    }
-//                }
-//            }
-//        } else {
-//            Releaser.jirasNotReleased.put(artefact.getGroupId() + artefact.getArtefactId(), artefact);
-//            log.error("Cannot determinate the project for artifact: " + artefact);
-//        }
+        jiraHelper.updateJiras(version,nextVersion,artefact,releaseArtefactResult);
     }
 
     private Artefact getArtefactFromFile(final String file) {

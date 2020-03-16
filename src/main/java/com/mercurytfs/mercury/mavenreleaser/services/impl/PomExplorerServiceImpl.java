@@ -75,7 +75,7 @@ public class PomExplorerServiceImpl implements PomExplorerService {
 
         if (isRelease()) {
             log.info("Maven Release for " + getArtifactInfo(path + POM_XML_LITERAL));
-            mavenService.invokeReleaser(path + POM_XML_LITERAL,releaseArtifact.getUsername(),releaseArtifact.getPassword());
+            mavenService.invokeReleaser(path + POM_XML_LITERAL,releaseArtifact.getUsername(),releaseArtifact.getPassword(), result);
         }
 
         log.info("<-- ######## Processing Finished for Artefact " + artefactName);
