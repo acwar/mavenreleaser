@@ -150,7 +150,6 @@ public class PomExplorerServiceImpl implements PomExplorerService {
                 log.warn(ARTEFACT_IS_ALREADY_IN_THE_MAP + artefact);
         } else {
             log.error("Artifact not found at repository");
-            //TODO If Mercury artifact, not found anywhere, Maybe not in Jenkins?
             if (!result.getArtefactsNotInArtifactory().containsKey(artefact))
                 result.getArtefactsNotInArtifactory().put(artefact, artefact);
             else
