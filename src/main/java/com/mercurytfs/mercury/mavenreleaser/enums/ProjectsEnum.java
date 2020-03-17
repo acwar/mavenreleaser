@@ -17,6 +17,8 @@ public enum ProjectsEnum {
 
     CUSTOMERS_LIBERBANK ("com.mercurytfs.mercury.customers.liberbank","LIBERBANK"),
 
+    PRODUCTS_LIBERBANK("com.mercurytfs.mercury.customers.liberbank.products","LIBERBANK"),
+
     MERCURY_PRUEBA ("com.mercurytfs.mercury.prueba","PRUEB"),
 
     SANTANDER_MEXICO ("com.mercurytfs.mercury.customers.santander.mexico","SANMEXICO"),
