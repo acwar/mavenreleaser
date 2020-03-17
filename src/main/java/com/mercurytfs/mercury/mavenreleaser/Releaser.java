@@ -1,11 +1,13 @@
 package com.mercurytfs.mercury.mavenreleaser;
 
-import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtifact;
-import com.mercurytfs.mercury.mavenreleaser.exception.ReleaserException;
-import lombok.Getter;
 import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtefactResult;
+import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtifact;
+import com.mercurytfs.mercury.mavenreleaser.dto.ArtifactVersion;
+import com.mercurytfs.mercury.mavenreleaser.dto.ArtifactVersionsList;
+import com.mercurytfs.mercury.mavenreleaser.exception.ReleaserException;
 import com.mercurytfs.mercury.mavenreleaser.helpers.ConsoleHelper;
 import com.mercurytfs.mercury.mavenreleaser.services.PomExplorerService;
+import lombok.Getter;
 import org.apache.commons.cli.*;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -19,8 +21,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.web.EmbeddedServletContainerAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 
 
 @SpringBootApplication(exclude = {EmbeddedServletContainerAutoConfiguration.class, WebMvcAutoConfiguration.class})
@@ -83,19 +90,39 @@ public class Releaser implements CommandLineRunner {
                 case SOURCES:
                     result = pomExplorer.configure(releaseArtifact).launch();
                     logArtifacts(ARTEFACTOS_ENCONTRADOS, result.getArtefacts().keySet());
+                    writeVersionsUpdateFile(result.getArtefactsVersions());
                     break;
                 default:
                     log.info("No compatible action provided. User release/prepare/sources");
             }
-        } catch (IOException | XmlPullParserException | MavenInvocationException | ReleaserException e1) {
+        } catch (IOException | XmlPullParserException | MavenInvocationException | ReleaserException | JAXBException e1) {
             log.debug(e1.getMessage());
             e1.printStackTrace();
         }
     }
+
+    /**
+     * Writes down a file for external versions correction check. Mean to be fed to this very releaser in release action
+     *
+     * TODO WriteFile in applicationProperties
+     * @param artefactsVersions
+     */
+    private void writeVersionsUpdateFile(Map<String, ArtifactVersion> artefactsVersions) throws JAXBException {
+        JAXBContext context = JAXBContext.newInstance(ArtifactVersionsList.class);
+        Marshaller marshallerObj = context.createMarshaller();
+        marshallerObj.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+
+        ArtifactVersionsList versionsRelations = new ArtifactVersionsList();
+        versionsRelations.setArtifactVersions(artefactsVersions.values());
+
+        marshallerObj.marshal(versionsRelations, new File("output.xml"));
+    }
+
     private void logArtifacts(String mensaje,Collection<String> values){
         log.info(mensaje);
         for (String artefact : values)
             log.info(artefact);
     }
+
 
 }
