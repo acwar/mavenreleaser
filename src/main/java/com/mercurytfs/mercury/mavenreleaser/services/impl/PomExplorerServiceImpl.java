@@ -51,6 +51,8 @@ public class PomExplorerServiceImpl implements PomExplorerService {
 
     private ReleaseArtifact releaseArtifact;
 
+    ReleaseArtefactResult processedSnapshots = new ReleaseArtefactResult();
+
     @Override
     public PomExplorerService configure(ReleaseArtifact actifact){
         releaseArtifact = actifact;
@@ -70,6 +72,7 @@ public class PomExplorerServiceImpl implements PomExplorerService {
         final String path = tempDir + artefactName;
         ReleaseArtefactResult result = new ReleaseArtefactResult();
         log.info("--> ######## Processing Started for Artefact " + artefactName);
+
         scmMediator.downloadProject(url, new File(path));
         result.addAll(processPom(path + POM_XML_LITERAL));
 
@@ -92,13 +95,17 @@ public class PomExplorerServiceImpl implements PomExplorerService {
             log.debug("The artifact " + model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + " is already a release");
             return result;
         }
+
         final List<Dependency> deps = model.getDependencies();
         log.debug(PROCESSING_DEPENDENCIES);
         String artefact;
         for (Dependency d : deps) {
             artefact = d.getGroupId() + "." + d.getArtifactId() + "." + d.getVersion();
             if (d.getVersion()!=null && d.getVersion().endsWith("SNAPSHOT"))
-                result.addAll(processSnapshotDependency(artefact, d));
+                if (processedSnapshots.getArtefacts().containsKey(artefact))
+                    log.debug("Artifact "+ artefact +" already processed");
+                else
+                    result.addAll(processSnapshotDependency(artefact, d));
             else
                 log.debug(artefact + " is a release, skiping");
         }
@@ -111,6 +118,7 @@ public class PomExplorerServiceImpl implements PomExplorerService {
         return  result;
     }
     private ReleaseArtefactResult processSnapshotDependency(String artefact, Dependency d) throws IOException, XmlPullParserException, ReleaserException, MavenInvocationException {
+
         Model pom;
         ReleaseArtefactResult result = new ReleaseArtefactResult();
 
@@ -140,7 +148,8 @@ public class PomExplorerServiceImpl implements PomExplorerService {
             else
                 log.warn(ARTEFACT_IS_ALREADY_IN_THE_MAP + artefact);
         }
-        return  result;
+        processedSnapshots.addAll(result);
+        return result;
     }
 
     private String extractSCMUrl(Scm scm) throws ReleaserException {
