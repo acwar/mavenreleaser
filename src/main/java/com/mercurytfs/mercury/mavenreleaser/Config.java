@@ -1,18 +1,14 @@
 package com.mercurytfs.mercury.mavenreleaser;
 
-import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.core.env.*;
-import org.springframework.beans.factory.annotation.*;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 
 @Configuration
 @PropertySource({ "classpath:config.properties" })
 public class Config
 {
-    private Config(){
-        throw new IllegalStateException("Utility class");
-    }
 
     @Bean
     public static PropertySourcesPlaceholderConfigurer propertyConfigInDev() {
