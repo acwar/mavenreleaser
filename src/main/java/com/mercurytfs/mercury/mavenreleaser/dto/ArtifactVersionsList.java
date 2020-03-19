@@ -17,4 +17,17 @@ public class ArtifactVersionsList{
     public void setArtifactVersions(Collection<ArtifactVersion> artifactVersions) {
         this.artifactVersions = artifactVersions;
     }
+
+    public ArtifactVersion findByArtifactId(String artifacId){
+        if (artifacId == null || artifacId.isEmpty())
+            return null;
+        if (artifactVersions == null || artifactVersions.isEmpty())
+            return null;
+
+        for (ArtifactVersion artifact:artifactVersions) {
+            if (artifact.getArtifactId().equals(artifacId))
+                    return artifact;
+        }
+        return null;
+    }
 }

@@ -1,17 +1,19 @@
 package com.mercurytfs.mercury.mavenreleaser.helpers;
 
 import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtifact;
+import com.mercurytfs.mercury.mavenreleaser.dto.ArtifactVersionsList;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.Console;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import java.io.*;
 
 public class ConsoleHelper {
     public static final String USERNAME_LITERAL = "username";
@@ -19,6 +21,7 @@ public class ConsoleHelper {
     public static final String ARTEFACT_NAME_LITERAL = "artefactName";
     public static final String URL_LITERAL = "url";
     public static final String ACTION_LITERAL = "action";
+    public static final String VERSIONS_LITERAL = "versions";
     private static final Logger log;
 
     static{
@@ -35,7 +38,7 @@ public class ConsoleHelper {
         tempreleaseArtifact.setUrl(cmd.getOptionValue(URL_LITERAL));
         tempreleaseArtifact.setAction(cmd.getOptionValue(ACTION_LITERAL));
         tempreleaseArtifact.setPassword(cmd.getOptionValue(PASS_LITERAL));
-
+        tempreleaseArtifact.setVersionsList(getVersionsList(cmd.getParsedOptionValue(VERSIONS_LITERAL)));
         Console cnsl;
         if (tempreleaseArtifact.getPassword() == null){
             if ((cnsl = System.console()) != null)
@@ -45,6 +48,22 @@ public class ConsoleHelper {
         }
 
         return tempreleaseArtifact;
+    }
+
+    private static ArtifactVersionsList getVersionsList(Object parsedOptionValue) throws ParseException {
+        ArtifactVersionsList response = new ArtifactVersionsList();
+        if (!(parsedOptionValue instanceof String) || StringUtils.isEmpty((String) parsedOptionValue))
+            return response;
+
+        try {
+            JAXBContext context = JAXBContext.newInstance(ArtifactVersionsList.class);
+            Unmarshaller unmarshaller = context.createUnmarshaller();
+            response = (ArtifactVersionsList) unmarshaller.unmarshal(new File((String) parsedOptionValue));
+        } catch (JAXBException e) {
+            log.error("Unable to create Marshaller for Versions file " + parsedOptionValue);
+            throw new ParseException("Unable to parse versions File:" + e.getMessage());
+        }
+        return response;
     }
 
     public static String getLineFromConsole(final String message) {
@@ -68,12 +87,15 @@ public class ConsoleHelper {
         Option actionOption = Option.builder().argName(ACTION_LITERAL).hasArg(true).longOpt(ACTION_LITERAL).required(true).build();
         Option jiraOption = Option.builder().argName("jira").hasArg(true).longOpt("jira").required(false).build();
         Option password = Option.builder().argName(PASS_LITERAL).hasArg(true).longOpt(PASS_LITERAL).required(false).build();
+        Option versions = Option.builder().argName(VERSIONS_LITERAL).hasArg(true).longOpt(VERSIONS_LITERAL).required(false).build();
         options.addOption(userNameOption);
         options.addOption(urlOption);
         options.addOption(artefactOption);
         options.addOption(actionOption);
         options.addOption(jiraOption);
         options.addOption(password);
+        options.addOption(versions);
         return options;
     }
+
 }

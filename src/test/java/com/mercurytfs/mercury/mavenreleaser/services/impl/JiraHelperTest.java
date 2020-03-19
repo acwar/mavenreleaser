@@ -1,13 +1,9 @@
 package com.mercurytfs.mercury.mavenreleaser.services.impl;
 
 import com.mercurytfs.mercury.mavenreleaser.Artefact;
-import com.mercurytfs.mercury.mavenreleaser.Releaser;
 import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtefactResult;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;

@@ -65,4 +65,19 @@ public class ArtifactVersion implements Serializable {
     public void setScm(String scm) {
         this.scm = scm;
     }
+
+    public String getPureNextVersion(String match){
+        if (nextVersion.endsWith(match)) {
+            final int snapshotPosition = nextVersion.indexOf(match);
+            return nextVersion.substring(0, snapshotPosition);
+        }
+        return nextVersion;
+    }
+    public  String getPureCurrentVersion(String match){
+        if (currentVersion.endsWith(match)) {
+            final int snapshotPosition = currentVersion.indexOf(match);
+            return currentVersion.substring(0, snapshotPosition);
+        }
+        return currentVersion;
+    }
 }

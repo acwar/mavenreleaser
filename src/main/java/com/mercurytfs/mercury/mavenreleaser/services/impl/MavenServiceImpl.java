@@ -1,8 +1,8 @@
 package com.mercurytfs.mercury.mavenreleaser.services.impl;
 
 import com.mercurytfs.mercury.mavenreleaser.Artefact;
-import com.mercurytfs.mercury.mavenreleaser.Releaser;
 import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtefactResult;
+import com.mercurytfs.mercury.mavenreleaser.dto.ArtifactVersion;
 import com.mercurytfs.mercury.mavenreleaser.helpers.ConsoleHelper;
 import com.mercurytfs.mercury.mavenreleaser.helpers.NewVersionHelper;
 import com.mercurytfs.mercury.mavenreleaser.services.MavenService;
@@ -54,20 +54,12 @@ public class MavenServiceImpl implements MavenService {
     private JiraHelper jiraHelper;
 
     @Override
-    public void invokeReleaser(String pom,String user,String pass, ReleaseArtefactResult releaseArtefactResult) throws MavenInvocationException {
+    public void invokeReleaser(String pom, String user, String pass, ReleaseArtefactResult releaseArtefactResult, ArtifactVersion artefactNextVersion) throws MavenInvocationException {
         InvocationRequest request = new DefaultInvocationRequest();
         Artefact artefact = getArtefactFromFile(pom);
+        if (artefactNextVersion == null)
+            artefactNextVersion = computeNextVersion(artefact);
 
-        log.info("Current Version : " + artefact.getVersion());
-        final String autoVersion = NewVersionHelper.getNextVersion(artefact.getVersion(), artefact.getScmURL());
-        String nextVersion = ConsoleHelper.getLineFromConsole("Type the new version (" + autoVersion + "): ");
-        if (nextVersion.equals("")) {
-            nextVersion = autoVersion;
-        }
-        if (!nextVersion.endsWith(SNAPSHOT_LITERAL)) {
-            log.warn("Next Version has not -SNAPSHOT SUFFIX. Adding...");
-            nextVersion = nextVersion + SNAPSHOT_LITERAL;
-        }
         request.setPomFile(new File(pom));
         final List<String> goals = new ArrayList<>();
         goals.add("release:prepare");
@@ -78,7 +70,7 @@ public class MavenServiceImpl implements MavenService {
         properties.put(USERNAME_LITERAL, user);
         properties.put(PASS_LITERAL, pass);
         properties.put("arguments", "-DskipTests -Dmaven.javadoc.skip=true -U ");
-        properties.put("developmentVersion", nextVersion);
+        properties.put("developmentVersion", artefactNextVersion.getNextVersion());
         request.setProperties(properties);
 
         final Invoker invoker = new DefaultInvoker();
@@ -88,16 +80,33 @@ public class MavenServiceImpl implements MavenService {
         if (result.getExitCode() != 0) {
             throw new IllegalStateException("Build failed.");
         }
-        String version = artefact.getVersion();
-        if (version.endsWith(SNAPSHOT_LITERAL)) {
-            final int snapshotPosition = version.indexOf(SNAPSHOT_LITERAL);
-            version = version.substring(0, snapshotPosition);
+
+        jiraHelper.updateJiras(
+                artefactNextVersion.getPureCurrentVersion(SNAPSHOT_LITERAL),
+                artefactNextVersion.getPureNextVersion(SNAPSHOT_LITERAL),
+                artefact,
+                releaseArtefactResult);
+    }
+
+    private ArtifactVersion computeNextVersion(Artefact artefact) {
+        log.info("Current Version : " + artefact.getVersion());
+        String autoVersion = NewVersionHelper.getNextVersion(artefact.getVersion(), artefact.getScmURL());
+        String nextVersion = ConsoleHelper.getLineFromConsole("Type the new version (" + autoVersion + "): ");
+        if (nextVersion.equals("")) {
+            nextVersion = autoVersion;
         }
-        if (nextVersion.endsWith(SNAPSHOT_LITERAL)) {
-            final int snapshotPosition = nextVersion.indexOf(SNAPSHOT_LITERAL);
-            nextVersion = nextVersion.substring(0, snapshotPosition);
+        if (!nextVersion.endsWith(SNAPSHOT_LITERAL)) {
+            log.warn("Next Version has not -SNAPSHOT SUFFIX. Adding...");
+            nextVersion = nextVersion + SNAPSHOT_LITERAL;
         }
-        jiraHelper.updateJiras(version,nextVersion,artefact,releaseArtefactResult);
+        ArtifactVersion artefactNextVersion = new ArtifactVersion();
+        artefactNextVersion.setArtifactId(artefact.getArtefactId());
+        artefactNextVersion.setNextVersion(nextVersion);
+        artefactNextVersion.setCurrentVersion(artefact.getVersion());
+        artefactNextVersion.setScm(artefact.getScmURL());
+
+        return artefactNextVersion;
+
     }
 
     private Artefact getArtefactFromFile(final String file) {

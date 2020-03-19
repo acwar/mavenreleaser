@@ -78,11 +78,12 @@ public class PomExplorerServiceImpl implements PomExplorerService {
     @Override
     public ReleaseArtefactResult launch() throws MavenInvocationException, XmlPullParserException, ReleaserException, IOException {
         ReleaseArtefactResult result = new ReleaseArtefactResult();
-        return result.addAll(downloadAndProcess(releaseArtifact.getUrl(), releaseArtifact.getArtefactName() + "-" + System.currentTimeMillis()));
+        result.addAll(downloadAndProcess(releaseArtifact.getUrl(), releaseArtifact.getArtefactName()));
+        return result.addAll(processedSnapshots);
     }
     @Override
     public ReleaseArtefactResult downloadAndProcess(String url, String artefactName) throws IOException, XmlPullParserException, MavenInvocationException, ReleaserException {
-        final String path = tempDir + artefactName;
+        final String path = tempDir + artefactName + "-" + System.currentTimeMillis();
         ReleaseArtefactResult result = new ReleaseArtefactResult();
         log.info("--> ######## Processing Started for Artefact " + artefactName);
 
@@ -91,7 +92,7 @@ public class PomExplorerServiceImpl implements PomExplorerService {
 
         if (isRelease()) {
             log.info("Maven Release for " + getArtifactInfo(path + POM_XML_LITERAL));
-            mavenService.invokeReleaser(path + POM_XML_LITERAL,releaseArtifact.getUsername(),releaseArtifact.getPassword(), result);
+            mavenService.invokeReleaser(path + POM_XML_LITERAL,releaseArtifact.getUsername(),releaseArtifact.getPassword(), result,releaseArtifact.getDependencyNextVersion(artefactName));
         }
 
         log.info("<-- ######## Processing Finished for Artefact " + artefactName);
@@ -144,11 +145,12 @@ public class PomExplorerServiceImpl implements PomExplorerService {
                 result.getArtefactsAlreadyReleased().put(artefact, artefact);
             else
                 log.warn(ARTEFACT_IS_ALREADY_IN_THE_MAP + artefact);
+            processedSnapshots.addAll(result);
             return result;
         }
         log.debug("\tArtifact release not found in artifactory");
         if ((pom = artifactoryHelper.getSnapshotArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion())) != null) {
-            downloadAndProcess(extractSCMUrl(pom.getScm()), String.valueOf(d.getArtifactId()) + System.currentTimeMillis());
+            downloadAndProcess(extractSCMUrl(pom.getScm()), String.valueOf(d.getArtifactId()));
             d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf(SNAPSHOT_LITERAL)));
             if (!result.getArtefacts().containsKey(artefact)) {
                 result.getArtefactsVersions().put(artefact,new ArtifactVersion(pom.getGroupId(), pom.getArtifactId(), pom.getVersion(),extractSCMUrl(pom.getScm())));
