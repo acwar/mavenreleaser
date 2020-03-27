@@ -116,7 +116,7 @@ public class PomExplorerServiceImpl implements PomExplorerService {
         for (Dependency d : deps) {
             artefact = d.getGroupId() + "." + d.getArtifactId() + "." + d.getVersion();
             if (d.getVersion()!=null && d.getVersion().endsWith("SNAPSHOT"))
-                if (processedSnapshots.getArtefacts().containsKey(artefact))
+                if (processedSnapshots.getArtefacts().containsKey(artefact) && !isRelease())
                     log.debug("Artifact "+ artefact +" already processed");
                 else
                     result.addAll(processSnapshotDependency(artefact, d));
