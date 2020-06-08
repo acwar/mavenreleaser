@@ -1,8 +1,9 @@
 package com.mercurytfs.mercury.mavenreleaser.helpers;
 
-import lombok.Getter;
-import lombok.Setter;
-import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtifact;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -11,20 +12,30 @@ import org.jfrog.artifactory.client.ArtifactoryClient;
 import org.jfrog.artifactory.client.model.RepoPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
+import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtifact;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Component
 public class ArtifactoryHelper {
     private Logger log = LoggerFactory.getLogger( this.getClass());
 
-    private static final String repoSnapshot1 = "libs-snapshot-local";
-    private static final String repoSnapshot2 = "libs-snapshot-santander";
-    private static final String repoRelease1 = "libs-release-santander";
-    private static final String repoRelease2 = "libs-release-local";
+    
+    @Value("${repository.snapshot.main}")
+    private String repoSnapshot1;
+    
+    @Value("${repository.snapshot.sanesp}")
+    private String repoSnapshot2;
+    
+    @Value("${repository.release.sanesp}")
+    private String repoRelease1;
+    
+    @Value("${repository.release.main}")
+    private String repoRelease2;
 
 
     @Setter @Getter
@@ -38,7 +49,10 @@ public class ArtifactoryHelper {
     }
 
     private Model getArtifactFromArtifactory(final String groupId, final String artifactId, final String version, final boolean release) throws IOException, XmlPullParserException {
-        Model model = null;
+    	
+    	log.debug("Using repositories: " + ((release) ? repoRelease1 + " and " + repoRelease2:repoSnapshot1 + " and " + repoSnapshot2));
+    	
+    	Model model = null;
         Artifactory artifactory = getArtifactoryClient();
         final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, (release) ? repoRelease1 : repoSnapshot1, (release) ? repoRelease2 : repoSnapshot2);
         String itemPath = "";
