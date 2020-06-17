@@ -30,11 +30,11 @@ public class ArtifactoryHelper {
     
     @Value("${repository.snapshot.sanesp}")
     private String repoSnapshot2;
-    
-    @Value("${repository.release.sanesp}")
-    private String repoRelease1;
-    
+
     @Value("${repository.release.main}")
+    private String repoRelease1;
+
+    @Value("${repository.release.sanesp}")
     private String repoRelease2;
 
 
