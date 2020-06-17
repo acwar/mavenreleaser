@@ -9,13 +9,13 @@
   </parent>
   <groupId>com.mercurytfs.mercury</groupId>
   <artifactId>mavenreleaser</artifactId>
-  <version>4.2.0</version>
+  <version>4.3.0-SNAPSHOT</version>
   <name>mavenreleaser</name>
   <description>Demo project for Spring Boot</description>
   <scm>
     <connection>scm:git:http://gitlabce.mercury-tfs.com/SantanderGTS/mavenreleaser.git</connection>
     <developerConnection>scm:git:http://gitlabce.mercury-tfs.com/SantanderGTS/mavenreleaser.git</developerConnection>
-    <tag>mavenreleaser-4.2.0</tag>
+    <tag>HEAD</tag>
   </scm>
   <distributionManagement>
     <repository>
