@@ -2,6 +2,7 @@ package com.mercurytfs.mercury.mavenreleaser.dto;
 
 import com.mercurytfs.mercury.mavenreleaser.helpers.NewVersionHelper;
 import lombok.Getter;
+import lombok.Setter;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -29,6 +30,8 @@ public class ArtifactVersion implements Serializable {
     private String nextVersion;
     @Getter
     private String scm;
+    @Getter @Setter
+    private boolean overrideCurrentVersion;
 
     public ArtifactVersion(String groupId, String artifactId, String currentVersion, String scm) {
         this.groupId = groupId;
@@ -36,6 +39,7 @@ public class ArtifactVersion implements Serializable {
         this.currentVersion = currentVersion;
         this.scm = scm;
         this.nextVersion = NewVersionHelper.getNextVersion(currentVersion,scm);
+        this.overrideCurrentVersion = false;
     }
 
     public ArtifactVersion() {

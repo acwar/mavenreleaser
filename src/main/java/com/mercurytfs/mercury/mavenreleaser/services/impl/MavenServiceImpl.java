@@ -71,6 +71,10 @@ public class MavenServiceImpl implements MavenService {
         properties.put(PASS_LITERAL, pass);
         properties.put("arguments", "-DskipTests -Dmaven.javadoc.skip=true -U ");
         properties.put("developmentVersion", artefactNextVersion.getNextVersion());
+
+        if (artefactNextVersion.isOverrideCurrentVersion())
+            properties.put("releaseVersion", artefactNextVersion.getCurrentVersion());
+
         request.setProperties(properties);
 
         final Invoker invoker = new DefaultInvoker();
@@ -90,8 +94,20 @@ public class MavenServiceImpl implements MavenService {
 
     private ArtifactVersion computeNextVersion(Artefact artefact) {
         log.info("Current Version : " + artefact.getVersion());
+        ArtifactVersion artefactNextVersion = new ArtifactVersion();
+        artefactNextVersion.setArtifactId(artefact.getArtefactId());
+        artefactNextVersion.setCurrentVersion(artefact.getVersion());
+        artefactNextVersion.setScm(artefact.getScmURL());
+
         String autoVersion = NewVersionHelper.getNextVersion(artefact.getVersion(), artefact.getScmURL());
         String nextVersion = ConsoleHelper.getLineFromConsole("Type the new version (" + autoVersion + "): ");
+
+        if (hasCurrentVersionIndicated(nextVersion)){
+            String[] tempVersion = splitPossibleVersionPair(nextVersion);
+            nextVersion = tempVersion[0];
+            artefactNextVersion.setCurrentVersion(tempVersion[1]);
+            artefactNextVersion.setOverrideCurrentVersion(true);
+        }
         if (nextVersion.equals("")) {
             nextVersion = autoVersion;
         }
@@ -99,14 +115,19 @@ public class MavenServiceImpl implements MavenService {
             log.warn("Next Version has not -SNAPSHOT SUFFIX. Adding...");
             nextVersion = nextVersion + SNAPSHOT_LITERAL;
         }
-        ArtifactVersion artefactNextVersion = new ArtifactVersion();
-        artefactNextVersion.setArtifactId(artefact.getArtefactId());
         artefactNextVersion.setNextVersion(nextVersion);
-        artefactNextVersion.setCurrentVersion(artefact.getVersion());
-        artefactNextVersion.setScm(artefact.getScmURL());
 
         return artefactNextVersion;
 
+    }
+
+
+    public  boolean hasCurrentVersionIndicated(String possiblePair){
+        return possiblePair.matches("[0-9]\\.[0-9]\\.[0-9]@[0-9]\\.[0-9]\\.[0-9]");
+    }
+
+    public String[] splitPossibleVersionPair(String possiblePair){
+        return possiblePair.split("@");
     }
 
     private Artefact getArtefactFromFile(final String file) {
