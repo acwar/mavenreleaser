@@ -123,7 +123,7 @@ public class MavenServiceImpl implements MavenService {
 
 
     public  boolean hasCurrentVersionIndicated(String possiblePair){
-        return possiblePair.matches("[0-9]\\.[0-9]\\.[0-9]@[0-9]\\.[0-9]\\.[0-9]");
+        return possiblePair.matches("[0-9]+\\.[0-9]+\\.[0-9]+@[0-9]+\\.[0-9]+\\.[0-9]+");
     }
 
     public String[] splitPossibleVersionPair(String possiblePair){
