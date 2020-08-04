@@ -12,7 +12,12 @@ Para cada una de estas que se encuentren se busca dicho artefacto en el reposito
   - De no encontrarse en el repo _SNAPSHOTS_ se le supone una dependencia externa y se le obvia.
 - De encontrarse se actualiza el pom eliminando el sufijo _SNAPSHOT_ en tanto se entiende no procede.
 
-Con el resultado de estas búsquedas se actualiza el POM analizado y __se respalda__ en el servidor para proceder a lanzar el plugin __maven-release__, este baja una copia del código para comprobar que compila correctamente, hace un tag en el repositorio de código y avanza el numero de versión del pom. Este numero nuevo de version será preguntado al operador conforme se continuen las liberaciones.
+Con el resultado de estas búsquedas se actualiza el POM analizado y __se respalda__ en el servidor para proceder a lanzar el plugin __maven-release__, este baja una copia del código para comprobar que compila correctamente, hace un tag en el repositorio de código y avanza el numero de versión del pom. Este numero nuevo de version será preguntado al operador conforme se continuen las liberaciones. Se puede indicar la version del artefacto en ciernes a liberar ademas de la version siguiente separadas por @
+```sh
+1.10.10@1.9.1
+```
+Indica que la siguiente version será la 1.10.0 y que el pom que está procesando se debe cerrar y desplegar como 1.9.1
+
 
 ## Uso
 Para lanzarlo se debe ejecutar como _jar_ en un sistema en que se tenga correctamente configurado la invacion de Maven (esto es, con un settings.xml que se conozca es correcto)
@@ -29,3 +34,4 @@ A mayores de estas se puede indicar como parámetros opcionales
 - __password__ La contraseña del usuario indicado, útil para labores de autimatizacion
 - __jira__ Jira asociado al artefacto para el tratamiento del flujo operativo
  
+
