@@ -22,6 +22,7 @@ public class ConsoleHelper {
     public static final String URL_LITERAL = "url";
     public static final String ACTION_LITERAL = "action";
     public static final String VERSIONS_LITERAL = "versions";
+    public static final String DRYRUN_LITERAL = "dryRun";
     private static final Logger log;
 
     static{
@@ -39,6 +40,8 @@ public class ConsoleHelper {
         tempreleaseArtifact.setAction(cmd.getOptionValue(ACTION_LITERAL));
         tempreleaseArtifact.setPassword(cmd.getOptionValue(PASS_LITERAL));
         tempreleaseArtifact.setVersionsList(getVersionsList(cmd.getParsedOptionValue(VERSIONS_LITERAL)));
+        tempreleaseArtifact.setDryRun(cmd.hasOption(DRYRUN_LITERAL));
+
         Console cnsl;
         if (tempreleaseArtifact.getPassword() == null){
             if ((cnsl = System.console()) != null)
@@ -88,6 +91,7 @@ public class ConsoleHelper {
         Option jiraOption = Option.builder().argName("jira").hasArg(true).longOpt("jira").required(false).build();
         Option password = Option.builder().argName(PASS_LITERAL).hasArg(true).longOpt(PASS_LITERAL).required(false).build();
         Option versions = Option.builder().argName(VERSIONS_LITERAL).hasArg(true).longOpt(VERSIONS_LITERAL).required(false).build();
+        Option dryrun = Option.builder().argName(DRYRUN_LITERAL).hasArg(false).longOpt(DRYRUN_LITERAL).required(false).build();
         options.addOption(userNameOption);
         options.addOption(urlOption);
         options.addOption(artefactOption);
@@ -95,6 +99,7 @@ public class ConsoleHelper {
         options.addOption(jiraOption);
         options.addOption(password);
         options.addOption(versions);
+        options.addOption(dryrun);
         return options;
     }
 

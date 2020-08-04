@@ -6,12 +6,18 @@ import com.mercurytfs.mercury.mavenreleaser.dto.ArtifactVersion;
 import com.mercurytfs.mercury.mavenreleaser.helpers.ConsoleHelper;
 import com.mercurytfs.mercury.mavenreleaser.helpers.NewVersionHelper;
 import com.mercurytfs.mercury.mavenreleaser.services.MavenService;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
-import org.apache.maven.shared.invoker.*;
+import org.apache.maven.shared.invoker.DefaultInvocationRequest;
+import org.apache.maven.shared.invoker.InvocationRequest;
+import org.apache.maven.shared.invoker.Invoker;
+import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -46,50 +52,92 @@ public class MavenServiceImpl implements MavenService {
     public static final String USERNAME_LITERAL = "username";
     public static final String PASS_LITERAL = "password";
 
+    private static final List<String> goals = new ArrayList<>();
+    static{
+        goals.add("release:prepare");
+        goals.add("release:perform");
+    }
 
     @Value("${maven.home}")
     private String mavenHome;
 
-    @Autowired
+    @Getter @Setter
     private JiraHelper jiraHelper;
+    @Getter @Setter
+    private Invoker invoker;
+    @Getter @Setter
+    private boolean ignoreSnapshots = false;
+    @Getter @Setter
+    private boolean dryRun = false;
 
     @Override
+    public MavenService configureDryRun(){
+        log.debug("Maven service configured to run DRY");
+        setIgnoreSnapshots(true);
+        setDryRun(true);
+        return this;
+    }
+
+    @Override
+    public MavenService configureRealRun(){
+        log.debug("Maven service configured to run REAL");
+        setIgnoreSnapshots(false);
+        setDryRun(false);
+        return this;
+    }
+
+    @Autowired
+    public MavenServiceImpl(JiraHelper jiraHelper, Invoker invoker){
+        if (jiraHelper==null || invoker==null)
+            throw new BeanCreationException("Unable to Construct MavenServiceImpl. Invoker and JiraHelper Null");
+
+        setJiraHelper(jiraHelper);
+        setInvoker(invoker);
+    }
+    @Override
     public void invokeReleaser(String pom, String user, String pass, ReleaseArtefactResult releaseArtefactResult, ArtifactVersion artefactNextVersion) throws MavenInvocationException {
-        InvocationRequest request = new DefaultInvocationRequest();
+
         Artefact artefact = getArtefactFromFile(pom);
-        if (artefactNextVersion == null)
+        if (artefactNextVersion == null) {
             artefactNextVersion = computeNextVersion(artefact);
-
-        request.setPomFile(new File(pom));
-        final List<String> goals = new ArrayList<>();
-        goals.add("release:prepare");
-        goals.add("release:perform");
-        request.setGoals(goals);
-
-        final Properties properties = new Properties();
-        properties.put(USERNAME_LITERAL, user);
-        properties.put(PASS_LITERAL, pass);
-        properties.put("arguments", "-DskipTests -Dmaven.javadoc.skip=true -U ");
-        properties.put("developmentVersion", artefactNextVersion.getNextVersion());
-
-        if (artefactNextVersion.isOverrideCurrentVersion())
-            properties.put("releaseVersion", artefactNextVersion.getCurrentVersion());
-
-        request.setProperties(properties);
-
-        final Invoker invoker = new DefaultInvoker();
-        invoker.setInputStream(System.in);
-        invoker.setMavenHome(new File(mavenHome));
-        final InvocationResult result = invoker.execute(request);
-        if (result.getExitCode() != 0) {
-            throw new IllegalStateException("Build failed.");
         }
 
-        jiraHelper.updateJiras(
+        InvocationRequest request = new DefaultInvocationRequest();
+        request.setPomFile(new File(pom));
+        request.setGoals(goals);
+        request.setProperties(getProperties(user, pass, artefactNextVersion));
+
+        executeRequest(request);
+
+        if (!isDryRun())
+            jiraHelper.updateJiras(
                 artefactNextVersion.getPureCurrentVersion(SNAPSHOT_LITERAL),
                 artefactNextVersion.getPureNextVersion(SNAPSHOT_LITERAL),
                 artefact,
                 releaseArtefactResult);
+    }
+
+    private void executeRequest(InvocationRequest request) throws MavenInvocationException {
+        invoker.setInputStream(System.in);
+        invoker.setMavenHome(new File(mavenHome));
+
+        if (invoker.execute(request).getExitCode() != 0) {
+            throw new IllegalStateException("Build failed.");
+        }
+    }
+
+    private Properties getProperties(String user, String pass, ArtifactVersion artefactNextVersion) {
+        final Properties properties = new Properties();
+        properties.put(USERNAME_LITERAL, user);
+        properties.put(PASS_LITERAL, pass);
+        properties.put("arguments", "-Dmaven.test.skip=true -Dmaven.javadoc.skip=true -U ");
+        properties.put("developmentVersion", artefactNextVersion.getNextVersion());
+        properties.put("ignoreSnapshots",isIgnoreSnapshots()?"true":"false");
+        properties.put("dryRun",isDryRun()?"true":"false");
+
+        if (artefactNextVersion.isOverrideCurrentVersion())
+            properties.put("releaseVersion", artefactNextVersion.getCurrentVersion());
+        return properties;
     }
 
     private ArtifactVersion computeNextVersion(Artefact artefact) {
@@ -120,7 +168,6 @@ public class MavenServiceImpl implements MavenService {
         return artefactNextVersion;
 
     }
-
 
     public  boolean hasCurrentVersionIndicated(String possiblePair){
         return possiblePair.matches("[0-9]+\\.[0-9]+\\.[0-9]+@[0-9]+\\.[0-9]+\\.[0-9]+");

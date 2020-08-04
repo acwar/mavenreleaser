@@ -25,6 +25,8 @@ public class ReleaseArtifact {
     private  String action;
     @Getter @Setter
     private ArtifactVersionsList versionsList;
+    @Getter @Setter
+    private boolean DryRun;
 
     private ReleaseAction releaseAction;
 

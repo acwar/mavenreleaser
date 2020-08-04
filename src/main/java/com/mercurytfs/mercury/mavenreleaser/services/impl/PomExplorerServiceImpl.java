@@ -1,15 +1,15 @@
 package com.mercurytfs.mercury.mavenreleaser.services.impl;
 
+import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtefactResult;
 import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtifact;
 import com.mercurytfs.mercury.mavenreleaser.dto.ArtifactVersion;
+import com.mercurytfs.mercury.mavenreleaser.enums.ReleaseAction;
 import com.mercurytfs.mercury.mavenreleaser.exception.ReleaserException;
 import com.mercurytfs.mercury.mavenreleaser.helpers.ArtifactoryHelper;
-import lombok.Getter;
-import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtefactResult;
-import com.mercurytfs.mercury.mavenreleaser.enums.ReleaseAction;
 import com.mercurytfs.mercury.mavenreleaser.services.MavenService;
 import com.mercurytfs.mercury.mavenreleaser.services.PomExplorerService;
 import com.mercurytfs.mercury.mavenreleaser.services.SCMMediator;
+import lombok.Getter;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Scm;
@@ -19,6 +19,7 @@ import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,7 @@ import java.util.List;
  */
 @Service
 public class PomExplorerServiceImpl implements PomExplorerService {
+
     public static final String PROCESSING_DEPENDENCIES = "Processing dependencies...";
     public static final String PROCESSING_POM_INPUT = "-->Processing Pom ";
     public static final String PROCESSING_POM_OUTPUT = "<--Processing Pom ";
@@ -49,29 +51,49 @@ public class PomExplorerServiceImpl implements PomExplorerService {
     public static final String ALREADY_EXISTS = " already exists";
     public static final String SNAPSHOT_LITERAL = "-SNAPSHOT";
     public static final String POM_XML_LITERAL = "/pom.xml";
-
-    @Autowired
-    private ArtifactoryHelper artifactoryHelper;
-    @Autowired
-    private SCMMediator scmMediator;
-    @Autowired
-    private MavenService mavenService;
-
-    @Value("${tempDir:/tmp/svn/}")
-    private String tempDir;
+    public static final String UNABLE_TO_CONSTRUCT_POM_EXPLORER_SERVICE_IMPL = "Unable to Construct PomExplorerServiceImpl. ";
+    public static final String IS_NULL = " is Null";
 
     @Getter
     private Logger log = LoggerFactory.getLogger(PomExplorerServiceImpl.class);
+    @Value("${tempDir:/tmp/svn/}")
+    private String tempDir;
 
     private ReleaseArtifact releaseArtifact;
+    private ReleaseArtefactResult processedSnapshots = new ReleaseArtefactResult();
 
-    ReleaseArtefactResult processedSnapshots = new ReleaseArtefactResult();
+    private ArtifactoryHelper artifactoryHelper;
+    private SCMMediator scmMediator;
+    private MavenService mavenService;
+
+
+    @Autowired
+    public PomExplorerServiceImpl(ArtifactoryHelper artifactoryHelper, SCMMediator scmMediator,MavenService mavenService){
+        if (artifactoryHelper==null)
+            throw new BeanCreationException(UNABLE_TO_CONSTRUCT_POM_EXPLORER_SERVICE_IMPL + "ArtifactoryHelper" + IS_NULL);
+        this.artifactoryHelper=artifactoryHelper;
+
+        if (scmMediator==null)
+            throw new BeanCreationException(UNABLE_TO_CONSTRUCT_POM_EXPLORER_SERVICE_IMPL + "scmMediator" + IS_NULL);
+        this.scmMediator = scmMediator;
+
+        if (mavenService==null)
+            throw new BeanCreationException(UNABLE_TO_CONSTRUCT_POM_EXPLORER_SERVICE_IMPL + "mavenService" + IS_NULL);
+        this.mavenService = mavenService;
+    }
+
 
     @Override
     public PomExplorerService configure(ReleaseArtifact actifact){
         releaseArtifact = actifact;
         artifactoryHelper.setReleaseArtifact(releaseArtifact);
         scmMediator.setReleaseArtifact(releaseArtifact);
+
+        if (releaseArtifact.isDryRun())
+            mavenService.configureDryRun();
+        else
+            mavenService.configureRealRun();
+
         return this;
     }
 
@@ -115,16 +137,18 @@ public class PomExplorerServiceImpl implements PomExplorerService {
         String artefact;
         for (Dependency d : deps) {
             artefact = d.getGroupId() + "." + d.getArtifactId() + "." + d.getVersion();
-            if (d.getVersion()!=null && d.getVersion().endsWith("SNAPSHOT"))
+            if (d.getVersion()!=null && d.getVersion().endsWith("SNAPSHOT")) {
                 if (processedSnapshots.getArtefacts().containsKey(artefact) && !isRelease())
-                    log.debug("Artifact "+ artefact +" already processed");
-                else
+                    log.debug("Artifact " + artefact + " already processed");
+                else {
                     result.addAll(processSnapshotDependency(artefact, d));
-            else
+                }
+            }else{
                 log.debug(artefact + " is a release, skiping");
+            }
         }
 
-        if (isRelease()){
+        if (isRelease() && !releaseArtifact.isDryRun()){
             writeModel(pomfile,model);
             scmMediator.commitFile(extractSCMUrl(model.getScm()),pomfile);
         }
