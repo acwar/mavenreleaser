@@ -24,7 +24,7 @@ import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import java.io.File;
+import java.io.File;pero
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
@@ -51,6 +51,9 @@ public class Releaser implements CommandLineRunner {
     @Value("${notcheck.token}")
     private String notCheckToken;
 
+    @Value("${git.branch:master}")
+    private String branch;
+
     @Getter
     private ReleaseArtifact releaseArtifact;
 
@@ -63,6 +66,7 @@ public class Releaser implements CommandLineRunner {
         log.debug("Start Releasing..");
         log.debug("Maven Home: " + mavenHome);
         log.debug("NotCheck Token: " + notCheckToken);
+        log.debug("----------> Branch "+branch+"<--------------");
         final Options options = ConsoleHelper.configureArgsExtractor();
         try {
             final CommandLine cmd = new DefaultParser().parse(options, args);
