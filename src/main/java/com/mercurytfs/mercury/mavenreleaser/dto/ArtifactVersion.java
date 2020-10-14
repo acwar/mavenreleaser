@@ -84,4 +84,32 @@ public class ArtifactVersion implements Serializable {
         }
         return currentVersion;
     }
+
+	public boolean isOverrideCurrentVersion() {
+		return overrideCurrentVersion;
+	}
+
+	public void setOverrideCurrentVersion(boolean overrideCurrentVersion) {
+		this.overrideCurrentVersion = overrideCurrentVersion;
+	}
+
+	public String getGroupId() {
+		return groupId;
+	}
+
+	public String getArtifactId() {
+		return artifactId;
+	}
+
+	public String getCurrentVersion() {
+		return currentVersion;
+	}
+
+	public String getNextVersion() {
+		return nextVersion;
+	}
+
+	public String getScm() {
+		return scm;
+	}
 }

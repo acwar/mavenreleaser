@@ -102,4 +102,10 @@ public class ArtifactoryHelper {
     private List<RepoPath> getResults(String groupId, String artifactId, String version, Artifactory artifactory, String s, String s2) {
         return artifactory.searches().artifactsByGavc().groupId(groupId).artifactId(artifactId).version(version).repositories(new String[]{s, s2}).doSearch();
     }
+	public ReleaseArtifact getReleaseArtifact() {
+		return releaseArtifact;
+	}
+	public void setReleaseArtifact(ReleaseArtifact releaseArtifact) {
+		this.releaseArtifact = releaseArtifact;
+	}
 }

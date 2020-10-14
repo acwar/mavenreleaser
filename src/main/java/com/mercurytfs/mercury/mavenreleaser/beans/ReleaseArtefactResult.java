@@ -11,6 +11,9 @@ import java.util.stream.Collectors;
 public class ReleaseArtefactResult {
     @Getter
     private Map<String, String> artefacts;
+    /**
+     * 
+     */
     @Getter
     private Map<String, ArtifactVersion> artefactsVersions;
     @Getter
@@ -64,4 +67,52 @@ public class ReleaseArtefactResult {
                 .collect(Collectors.joining(", ", "{", "}"));
         return mapAsString;
     }
+
+	public Map<String, String> getArtefacts() {
+		return artefacts;
+	}
+
+	public void setArtefacts(Map<String, String> artefacts) {
+		this.artefacts = artefacts;
+	}
+
+	public Map<String, String> getArtefactsAlreadyReleased() {
+		return artefactsAlreadyReleased;
+	}
+
+	public void setArtefactsAlreadyReleased(Map<String, String> artefactsAlreadyReleased) {
+		this.artefactsAlreadyReleased = artefactsAlreadyReleased;
+	}
+
+	public Map<String, String> getArtefactsNotInArtifactory() {
+		return artefactsNotInArtifactory;
+	}
+
+	public void setArtefactsNotInArtifactory(Map<String, String> artefactsNotInArtifactory) {
+		this.artefactsNotInArtifactory = artefactsNotInArtifactory;
+	}
+
+	public Map<String, Artefact> getJirasNotReleased() {
+		return jirasNotReleased;
+	}
+
+	public void setJirasNotReleased(Map<String, Artefact> jirasNotReleased) {
+		this.jirasNotReleased = jirasNotReleased;
+	}
+
+	public Map<String, Artefact> getJirasReleased() {
+		return jirasReleased;
+	}
+
+	public void setJirasReleased(Map<String, Artefact> jirasReleased) {
+		this.jirasReleased = jirasReleased;
+	}
+
+	public Map<String, ArtifactVersion> getArtefactsVersions() {
+		return artefactsVersions;
+	}
+
+	public void setArtefactsVersions(Map<String, ArtifactVersion> artefactsVersions) {
+		this.artefactsVersions = artefactsVersions;
+	}
 }
