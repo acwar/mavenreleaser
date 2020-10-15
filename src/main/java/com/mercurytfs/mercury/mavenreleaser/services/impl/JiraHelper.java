@@ -6,11 +6,18 @@ import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtefactResult;
 import com.mercurytfs.mercury.mavenreleaser.enums.ProjectsEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 public class JiraHelper {
+	
+	private static final Logger log;
+	
+	static {
+    	log = LoggerFactory.getLogger((Class) JiraHelper.class);
+    }
 
     public void updateJiras(String version, String nextVersion, Artefact artefact, ReleaseArtefactResult releaseArtefactResult){
         log.info("--------------------------------------------");

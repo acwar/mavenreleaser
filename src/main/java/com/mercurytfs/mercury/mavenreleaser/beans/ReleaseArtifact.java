@@ -45,4 +45,56 @@ public class ReleaseArtifact {
 
     }
 
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	public String getArtefactName() {
+		return artefactName;
+	}
+
+	public void setArtefactName(String artefactName) {
+		this.artefactName = artefactName;
+	}
+
+	public String getAction() {
+		return action;
+	}
+
+	public void setAction(String action) {
+		this.action = action;
+	}
+
+	public ArtifactVersionsList getVersionsList() {
+		return versionsList;
+	}
+
+	public void setVersionsList(ArtifactVersionsList versionsList) {
+		this.versionsList = versionsList;
+	}
+
+	public void setReleaseAction(ReleaseAction releaseAction) {
+		this.releaseAction = releaseAction;
+	}
+
 }
