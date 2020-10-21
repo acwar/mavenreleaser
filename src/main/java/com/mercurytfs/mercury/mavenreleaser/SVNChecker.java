@@ -4,9 +4,9 @@ import com.mercurytfs.mercury.mavenreleaser.enums.ProjectsEnum;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-import org.slf4j.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.tmatesoft.svn.core.SVNNodeKind;
-import org.tmatesoft.svn.core.SVNProperties;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.io.SVNRepository;
@@ -14,9 +14,14 @@ import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
-import java.util.regex.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SVNChecker {
     private static final Logger log;
@@ -41,7 +46,7 @@ public class SVNChecker {
 
     //java -cp mavenreleaser-3.0.0-SNAPSHOT.jar -Dloader.main=org.agrsw.mavenreleaser.SVNChecker  org.springframework.boot.loader.PropertiesLauncher
     static {
-        log = LoggerFactory.getLogger((Class) SVNChecker.class);
+        log = LoggerFactory.getLogger(SVNChecker.class);
         SVNChecker.ERROR_WRONG_PARAMETERS = 1;
         SVNChecker.ERROR_COMMIT_MESSAGE_FORMAT = 2;
         SVNChecker.ERROR_SVN_FILE_HAS_NOT_OPEN_ARTEfACT_OR_DONT_EXIST = 3;
@@ -92,7 +97,7 @@ public class SVNChecker {
             }
         } else {
             SVNChecker.log.info("jira issue key not found. Checking if it`s a notcheck commit or a maven release plugin commit");
-            if (checkCommitMessageWithOutNumber(commitMessage, "maven-release-plugin")==null || checkCommitMessageWithOutNumber(commitMessage, notcheckTokenProperty) == null) {
+            if (checkCommitMessageWithOutNumber(commitMessage, "maven-release-plugin") == null && checkCommitMessageWithOutNumber(commitMessage, notcheckTokenProperty) == null) {
                 SVNChecker.log.error("The commit Message has not the correct format: ERROR_COMMIT_MESSAGE_FORMAT");
                 System.err.println("The commit Message has not the correct format: ERROR_COMMIT_MESSAGE_FORMAT");
                 System.exit(SVNChecker.ERROR_COMMIT_MESSAGE_FORMAT);
@@ -163,12 +168,12 @@ public class SVNChecker {
             if (file.contains("/src/main")) {
                 splits = file.split("/src/main");
                 if (splits.length > 0) {
-                    url = String.valueOf(splits[0]) + "/pom.xml";
+                    url = splits[0] + "/pom.xml";
                 }
             } else if (file.contains("/src/resources")) {
                 splits = file.split("/src/resources");
                 if (splits.length > 0) {
-                    url = String.valueOf(splits[0]) + "/pom.xml";
+                    url = splits[0] + "/pom.xml";
                 }
 
             } else if (file.contains("pom.xml")) {
@@ -228,8 +233,8 @@ public class SVNChecker {
             final ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager(user, pass);
             repository.setAuthenticationManager(authManager);
             final ByteArrayOutputStream os = new ByteArrayOutputStream();
-            final long num = repository.getFile(filePath, -1L, (SVNProperties) null, (OutputStream) os);
-            final String aString = new String(os.toByteArray(), "UTF-8");
+            final long num = repository.getFile(filePath, -1L, null, os);
+            final String aString = new String(os.toByteArray(), StandardCharsets.UTF_8);
             return aString;
         } catch (Exception e) {
             log.debug("Error getting file." + e);
@@ -242,7 +247,7 @@ public class SVNChecker {
         final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
         final Artefact artefact = new Artefact();
         try {
-            final InputStream stream = new ByteArrayInputStream(file.getBytes("UTF-8"));
+            final InputStream stream = new ByteArrayInputStream(file.getBytes(StandardCharsets.UTF_8));
             final Model model = mavenreader.read(stream);
             artefact.setArtefactId(model.getArtifactId());
             artefact.setGroupId(model.getGroupId());
