@@ -1,6 +1,6 @@
 # MercuryTFS Maven Releaser
 ## Visión general
-Maven Releaser es una herramienta desarrollada en Mercury para cubrir la necesidad de liberaciones rapidas de todas la maraña de dependencias que se desprenden de los proyectos Maven.
+Maven Releaser es una herramienta opensource desarrollada por empleados de Mercury en su tiempo libre para cubrir la necesidad de liberaciones rapidas de todas la maraña de dependencias que se desprenden de los proyectos Maven.
 
 Permite el analisis de un pom de partida en que encuentra todas sus dependencias y de forma escalonada liberarlas en el orden que lo exija el arbol de dependencias.
 
