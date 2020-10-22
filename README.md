@@ -56,11 +56,70 @@ Donde:
 Ejemplo: java -cp mavenreleaser-4.3.2.jar -Dloader.main=com.mercurytfs.mercury.mavenreleaser.SVNChecker org.springframework.boot.loader.PropertiesLauncher 
                 "branches/development/fichero1.java;branches/development/fichero2" "Mensaje de Commit" "pepito.muñoz"
          
+#MercuryTFS SvnChecker
+Dentro de este paquete se encuenta la clase de utilidad SVNChecker que comprueba la correccion de la metodologia aplciada 
+a los commit en SVN y su contrapartida en JIRA con sus enlaces a tareas tipo _Artefacto Maven_
 
- 
+Se incluye una invocacion de ejemplo en el Hook *pre-commit* de SVN actualmente en uso
 
+```
+#!/bin/sh
 
+REPOS="$1"
+TXN="$2"
 
+SVNLOOK=/usr/bin/svnlook
+JAVA=/opt/mavenreleaser/mavenreleaser-4.3.3.jar
+CAMBIOS=`$SVNLOOK changed -t $TXN $REPOS`
+COMMIT_MESSAGE=`$SVNLOOK log -t $TXN $REPOS` 
+USER=`$SVNLOOK author -t $TXN $REPOS`
+i=1
+for aux in $CAMBIOS
+do
+  
+if [ `expr $i % 2` -eq 0 ]
+then
+    if [ $FICHEROS ]
+    then 
+    	FICHEROS="$FICHEROS;${aux}"
+    else
+        FICHEROS=${aux}
+    fi
+fi
+i=$((i+1))
+done
+java -cp $JAVA  -Dloader.main=com.mercurytfs.mercury.mavenreleaser.SVNChecker org.springframework.boot.loader.PropertiesLauncher $FICHEROS "$COMMIT_MESSAGE" $USER
 
- 
+VALIDA=$?
 
+if [ "$VALIDA" -eq "1" ]
+then
+	echo "ERROR_WRONG_PARAMETERS" 1>&2
+
+elif [ "$VALIDA" -eq "2" ]
+then
+        echo "ERROR_COMMIT_MESSAGE_FORMAT" 1>&2
+
+elif [ "$VALIDA" -eq "3" ]
+then
+        echo "ERROR_SVN_FILE_HAS_NOT_OPEN_ARTEfACT_OR_DONT_EXIST" 1>&2
+elif [ "$VALIDA" -eq "4" ]
+then
+        echo "ERROR_SVN_FILE_ARTEFACT_IS_NOT_LINKED_WITH_COMMIT_ISSUE" 1>&2
+
+elif [ "$VALIDA" -eq "5" ]
+then
+        echo "ERROR_JIRA_ISSUE_IS_RESOLVED_CANNOT_COMMIT_TO_THIS_ISSUE" 1>&2
+fi
+
+exit $VALIDA
+```
+
+Para su configuracion se usa el fichero __config.properties__ por defecto incluido en este paquete, aunqe se puede indicar
+por parametros de la maquina virtual una ruta alternativa __-Dconfigfile.path=__[ruta fichero].
+
+Las propiedades que debe contener minimas dicho fichero son
+- __notcheck.token__=#NOTCHECK
+- __jira.user__=admin1
+- __jira.password__=########
+- __projects.list__=MERCURY,BANORTE,PRUEB,IN....
