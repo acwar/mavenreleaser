@@ -4,6 +4,8 @@ Maven Releaser es una herramienta opensource desarrollada por empleados de Mercu
 
 Permite el analisis de un pom de partida en que encuentra todas sus dependencias y de forma escalonada liberarlas en el orden que lo exija el arbol de dependencias.
 
+También permite verificar los commits que se hacen a svn o git para que el codigo fuente que se sube está correctamente relacionado en jira con los artefactos correspondientes
+
 ## Fucionamiento general liberación
 Una vez invocado, se explora el _pom.xml_ del proyecto indicado en busca de dependencias que se encuentren subfijadas con el apellido _SNAPSHOT_. 
 Para cada una de estas que se encuentren se busca dicho artefacto en el repositorio de MercuryTFS ([artifactory](http://192.168.10.2:8081/artifactory/webapp/login.html?0)) en lo repositorios de versiones cerradas en busca de una version liberada: 
@@ -19,7 +21,7 @@ Con el resultado de estas búsquedas se actualiza el POM analizado y __se respal
 Indica que la siguiente version será la 1.10.0 y que el pom que está procesando se debe cerrar y desplegar como 1.9.1
 
 
-## Uso
+## Uso Maven Releaser
 Para lanzarlo se debe ejecutar como _jar_ en un sistema en que se tenga correctamente configurado la invacion de Maven (esto es, con un settings.xml que se conozca es correcto)
 ```sh
 $ java -jar mavenreleaser-4.0.0.jar --username aUser --url http://gitlab.mercurytfs.com/aMightyArtifact -- artefactName aMightyArtifact --action prepare
@@ -33,5 +35,32 @@ El ejecutable cuenta con 4 parámetros obligatorios, a saber
 A mayores de estas se puede indicar como parámetros opcionales 
 - __password__ La contraseña del usuario indicado, útil para labores de autimatizacion
 - __jira__ Jira asociado al artefacto para el tratamiento del flujo operativo
+- 
+
+## Uso Commit checker con SVN
+
+
+Para comprobar los commits en SVN se ha utilizado el hook de pre-commit. Este se encuentra dentro de la máquina 192.168.10.2 en el directorio /var/lib/svn/mercury/hooks
+
+Dentro del hook se llamda al Commit checker invocando el siguiente comando:
+
+java -cp $JAVA  -Dloader.main=com.mercurytfs.mercury.mavenreleaser.SVNChecker org.springframework.boot.loader.PropertiesLauncher $FICHEROS "$COMMIT_MESSAGE" $USER
+
+Donde:
+
+  - JAVA es la ruta del fichero ejecutable 
+  - FICHEROS es la ruta de los ficheros que se van a hacer commit separados por punto y coma
+  - COMMIT_MESSAGE es el mensaje del commit
+  - USER usuario que hace el commit
+  - 
+Ejemplo: java -cp mavenreleaser-4.3.2.jar -Dloader.main=com.mercurytfs.mercury.mavenreleaser.SVNChecker org.springframework.boot.loader.PropertiesLauncher 
+                "branches/development/fichero1.java;branches/development/fichero2" "Mensaje de Commit" "pepito.muñoz"
+         
+
+ 
+
+
+
+
  
 
