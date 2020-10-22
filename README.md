@@ -37,30 +37,12 @@ A mayores de estas se puede indicar como parámetros opcionales
 - __jira__ Jira asociado al artefacto para el tratamiento del flujo operativo
 - 
 
-## Uso Commit checker con SVN
 
-
-Para comprobar los commits en SVN se ha utilizado el hook de pre-commit. Este se encuentra dentro de la máquina 192.168.10.2 en el directorio /var/lib/svn/mercury/hooks
-
-Dentro del hook se llamda al Commit checker invocando el siguiente comando:
-
-java -cp $JAVA  -Dloader.main=com.mercurytfs.mercury.mavenreleaser.SVNChecker org.springframework.boot.loader.PropertiesLauncher $FICHEROS "$COMMIT_MESSAGE" $USER
-
-Donde:
-
-  - JAVA es la ruta del fichero ejecutable 
-  - FICHEROS es la ruta de los ficheros que se van a hacer commit separados por punto y coma
-  - COMMIT_MESSAGE es el mensaje del commit
-  - USER usuario que hace el commit
-  - 
-Ejemplo: java -cp mavenreleaser-4.3.2.jar -Dloader.main=com.mercurytfs.mercury.mavenreleaser.SVNChecker org.springframework.boot.loader.PropertiesLauncher 
-                "branches/development/fichero1.java;branches/development/fichero2" "Mensaje de Commit" "pepito.muñoz"
-         
 #MercuryTFS SvnChecker
 Dentro de este paquete se encuenta la clase de utilidad SVNChecker que comprueba la correccion de la metodologia aplciada 
 a los commit en SVN y su contrapartida en JIRA con sus enlaces a tareas tipo _Artefacto Maven_
 
-Se incluye una invocacion de ejemplo en el Hook *pre-commit* de SVN actualmente en uso
+Se incluye una invocacion de ejemplo en el Hook *pre-commit* de SVN actualmente en uso (192.168.10.2:/var/lib/svn/mercury/hooks)
 
 ```
 #!/bin/sh
