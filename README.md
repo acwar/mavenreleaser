@@ -35,7 +35,8 @@ El ejecutable cuenta con 4 parámetros obligatorios, a saber
 A mayores de estas se puede indicar como parámetros opcionales 
 - __password__ La contraseña del usuario indicado, útil para labores de autimatizacion
 - __jira__ Jira asociado al artefacto para el tratamiento del flujo operativo
-  
+
+Se pueden indicar algunas de las variables de configuracion por linea de comando con argumentos -D en la invocacion
 
 #MercuryTFS SvnChecker
 ##Descripcion
