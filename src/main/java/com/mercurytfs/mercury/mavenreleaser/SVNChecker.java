@@ -14,10 +14,7 @@ import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -126,6 +123,17 @@ public class SVNChecker {
 
     private Properties loadProperties(){
         Properties properties = new Properties();
+        String value= System.getProperty("configfile.path");
+
+        if (value != null){
+            try (InputStream inputStream = new FileInputStream(value)){
+                properties.load(inputStream);
+                return properties;
+            } catch (Exception e ) {
+                log.debug("Unable to read " + value + " location. Reading default values");
+                log.debug(e.getMessage(), e);
+            }
+        }
         try {
             properties.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
         } catch (IOException e) {
