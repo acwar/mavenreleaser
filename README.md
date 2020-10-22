@@ -1,4 +1,4 @@
-# MercuryTFS Maven Releaser
+# MercuryTFS Maven Releaser & SVNChecker
 ## Visión general
 Maven Releaser es una herramienta opensource desarrollada por empleados de Mercury en su tiempo libre para cubrir la necesidad de liberaciones rapidas de todas la maraña de dependencias que se desprenden de los proyectos Maven.
 
@@ -38,8 +38,8 @@ A mayores de estas se puede indicar como parámetros opcionales
 
 Se pueden indicar algunas de las variables de configuracion por linea de comando con argumentos -D en la invocacion
 
-#MercuryTFS SvnChecker
-##Descripcion
+
+##SvnChecker
 Dentro de este paquete se encuenta la clase de utilidad SVNChecker que comprueba la correccion de la metodologia aplciada 
 a los commit en SVN y su contrapartida en JIRA con sus enlaces a tareas tipo _Artefacto Maven_
 
