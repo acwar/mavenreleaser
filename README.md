@@ -35,11 +35,14 @@ El ejecutable cuenta con 4 parámetros obligatorios, a saber
 A mayores de estas se puede indicar como parámetros opcionales 
 - __password__ La contraseña del usuario indicado, útil para labores de autimatizacion
 - __jira__ Jira asociado al artefacto para el tratamiento del flujo operativo
+  
 
 #MercuryTFS SvnChecker
+##Descripcion
 Dentro de este paquete se encuenta la clase de utilidad SVNChecker que comprueba la correccion de la metodologia aplciada 
 a los commit en SVN y su contrapartida en JIRA con sus enlaces a tareas tipo _Artefacto Maven_
 
+##Uso
 Se incluye una invocacion de ejemplo en el Hook *pre-commit* de SVN actualmente en uso (192.168.10.2:/var/lib/svn/mercury/hooks)
 
 ```
@@ -95,6 +98,7 @@ fi
 exit $VALIDA
 ```
 
+##Configuracion
 Para su configuracion se usa el fichero __config.properties__ por defecto incluido en este paquete, aunqe se puede indicar
 por parametros de la maquina virtual una ruta alternativa __-Dconfigfile.path=__[ruta fichero].
 
