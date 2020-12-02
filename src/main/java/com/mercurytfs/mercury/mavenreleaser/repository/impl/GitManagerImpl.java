@@ -10,7 +10,6 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.io.File;
 
@@ -19,9 +18,6 @@ public class GitManagerImpl implements VersionControlRepository {
     private static final Logger LOGGER = LoggerFactory.getLogger(GitManagerImpl.class);
 
     private static final String ADD_ALL_FILES_TO_COMMIT = ".";
-
-    @Value("${git.branch:master}")
-    private String branchName;
 
     @Override
     public boolean commit(File file, RepositoryDTO repositoryDTO, String notCheckToken) throws ReleaserException{
@@ -52,12 +48,16 @@ public class GitManagerImpl implements VersionControlRepository {
         try {
             CredentialsProvider cp = new UsernamePasswordCredentialsProvider(repositoryDTO.getUserName(), repositoryDTO.getPassword());
 
-            Git.cloneRepository()
+            Git repo = Git.cloneRepository()
                     .setCredentialsProvider(cp)
-                    .setBranch(branchName)
+                    .setBranch(repositoryDTO.getBranchName())
                     .setURI(repositoryDTO.getRemotePath())
                     .setDirectory(new File(target.getPath()))
                     .call();
+
+            if (repo.branchList().call().size()<=0)
+                throw new ReleaserException("Error cloning repository. Branch " + repositoryDTO.getBranchName() + " does not exist", null);
+
             LOGGER.info("Artifact downloaded from GIT");
             return true;
         } catch (GitAPIException e) {

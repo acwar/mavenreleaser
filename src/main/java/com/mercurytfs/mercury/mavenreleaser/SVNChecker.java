@@ -233,7 +233,7 @@ public class SVNChecker {
             repository.setAuthenticationManager(authManager);
             final ByteArrayOutputStream os = new ByteArrayOutputStream();
             final long num = repository.getFile(filePath, -1L, null, os);
-            final String aString = os.toString(StandardCharsets.UTF_8);
+            final String aString = StandardCharsets.UTF_8.toString();
             return aString;
         } catch (Exception e) {
             log.debug("Error getting file." + e);

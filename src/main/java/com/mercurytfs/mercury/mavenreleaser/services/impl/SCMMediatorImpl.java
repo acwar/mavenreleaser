@@ -17,7 +17,7 @@ import java.io.File;
 @Service
 public class SCMMediatorImpl implements SCMMediator {
 
-    private Logger log = LoggerFactory.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
 
     @Autowired
@@ -25,6 +25,9 @@ public class SCMMediatorImpl implements SCMMediator {
 
     @Value("${notcheck.token}")
     private String notCheckToken;
+
+    @Value("${git.branch:master}")
+    private String branchName;
 
     private ReleaseArtifact releaseArtifact;
 
@@ -51,9 +54,10 @@ public class SCMMediatorImpl implements SCMMediator {
         repositoryDTO.setPassword(releaseArtifact.getPassword());
         repositoryDTO.setRemotePath(url.replaceAll("gitlabce.mercury-tfs.com","192.168.10.125"));
 
-        if (isGit(url))
+        if (isGit(url)) {
             repositoryDTO.setRepositoryType(RepositoryTypeEnum.GIT);
-        else
+            repositoryDTO.setBranchName(branchName);
+        }else
             repositoryDTO.setRepositoryType(RepositoryTypeEnum.SVN);
 
         return repositoryDTO;
