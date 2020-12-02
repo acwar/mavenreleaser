@@ -36,7 +36,13 @@ A mayores de estas se puede indicar como parámetros opcionales
 - __password__ La contraseña del usuario indicado, útil para labores de autimatizacion
 - __jira__ Jira asociado al artefacto para el tratamiento del flujo operativo
 
-Se pueden indicar algunas de las variables de configuracion por linea de comando con argumentos -D en la invocacion
+Se pueden indicar algunas de las variables de configuracion por linea de comando con argumentos -D en la invocacion.
+
+Los repositorios GIT se indicar el branch a usar en lugar de master con la propiedad *git.branch* desde la version 4.3.4 en adelante
+
+```sh
+$ java -Dgit.branch=MIBRANCH -jar mavenreleaser-4......
+```
 
 # MercuryTFS SVNChecker
 Dentro de este paquete se encuenta la clase de utilidad SVNChecker que comprueba la correccion de la metodologia aplciada 
