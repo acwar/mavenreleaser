@@ -1,15 +1,16 @@
 package com.mercurytfs.mercury.mavenreleaser.repository.impl;
 
 
-import com.mercurytfs.mercury.mavenreleaser.repository.VersionControlRepository;
 import com.mercurytfs.mercury.mavenreleaser.dto.RepositoryDTO;
 import com.mercurytfs.mercury.mavenreleaser.exception.ReleaserException;
+import com.mercurytfs.mercury.mavenreleaser.repository.VersionControlRepository;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.File;
 
@@ -18,6 +19,9 @@ public class GitManagerImpl implements VersionControlRepository {
     private static final Logger LOGGER = LoggerFactory.getLogger(GitManagerImpl.class);
 
     private static final String ADD_ALL_FILES_TO_COMMIT = ".";
+
+    @Value("${git.branch:master}")
+    private String branchName;
 
     @Override
     public boolean commit(File file, RepositoryDTO repositoryDTO, String notCheckToken) throws ReleaserException{
@@ -50,6 +54,7 @@ public class GitManagerImpl implements VersionControlRepository {
 
             Git.cloneRepository()
                     .setCredentialsProvider(cp)
+                    .setBranch(branchName)
                     .setURI(repositoryDTO.getRemotePath())
                     .setDirectory(new File(target.getPath()))
                     .call();

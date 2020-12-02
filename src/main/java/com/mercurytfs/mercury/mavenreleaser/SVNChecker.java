@@ -14,7 +14,10 @@ import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -24,22 +27,22 @@ public class SVNChecker {
     private static final Logger log;
 
     private Releaser releaser;
-    private String repositoryURL;
+    private final String repositoryURL;
     private static int ERROR_WRONG_PARAMETERS;
     private static int ERROR_COMMIT_MESSAGE_FORMAT;
     private static int ERROR_SVN_FILE_HAS_NOT_OPEN_ARTEfACT_OR_DONT_EXIST;
     private static int ERROR_SVN_FILE_ARTEFACT_IS_NOT_LINKED_WITH_COMMIT_ISSUE;
     private static int ERROR_JIRA_ISSUE_IS_RESOLVED_CANNOT_COMMIT_TO_THIS_ISSUE;
 
-    private String notcheckTokenProperty;
+    private final String notcheckTokenProperty;
 
     public static String user = "";
     public static String pass = "";
 
-    private String scmUser;
-    private String commitMessage;
-    private String[] svnFiles;
-    private String[] projects;
+    private final String scmUser;
+    private final String commitMessage;
+    private final String[] svnFiles;
+    private final String[] projects;
 
     //java -cp mavenreleaser-3.0.0-SNAPSHOT.jar -Dloader.main=org.agrsw.mavenreleaser.SVNChecker  org.springframework.boot.loader.PropertiesLauncher
     static {
@@ -123,17 +126,6 @@ public class SVNChecker {
 
     private Properties loadProperties(){
         Properties properties = new Properties();
-        String value= System.getProperty("configfile.path");
-
-        if (value != null){
-            try (InputStream inputStream = new FileInputStream(value)){
-                properties.load(inputStream);
-                return properties;
-            } catch (Exception e ) {
-                log.debug("Unable to read " + value + " location. Reading default values");
-                log.debug(e.getMessage(), e);
-            }
-        }
         try {
             properties.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
         } catch (IOException e) {
@@ -155,7 +147,6 @@ public class SVNChecker {
     }
 
     public Artefact getArtefactOfFile(final String repositoryURL, final String file, final String jiraIssue) {
-        Artefact jiraArtefactOfFile = null;
         if (file != null) {
             final String[] splits = file.split("/src/main");
             log.debug(splits.toString());
@@ -163,10 +154,10 @@ public class SVNChecker {
             if ((url != null) && (splits.length > 0)) {
                 final String pom = getFilefromSVN(repositoryURL, url);
                 final Artefact artefact = getArtefactFromString(pom);
-                jiraArtefactOfFile = JiraClient.getIssueKey(ProjectsEnum.getProjectNameFromGroupId(artefact.getGroupId()), artefact.getArtefactId(), artefact.getVersion().substring(0, artefact.getVersion().indexOf("-SNAPSHOT")));
+                return artefact.getVersion().indexOf("-SNAPSHOT")>=0?JiraClient.getIssueKey(ProjectsEnum.getProjectNameFromGroupId(artefact.getGroupId()), artefact.getArtefactId(), artefact.getVersion().substring(0, artefact.getVersion().indexOf("-SNAPSHOT"))):null;
             }
         }
-        return jiraArtefactOfFile;
+        return null;
     }
     private String getPomURL(String file) {
         log.debug("getPomURL->" + file);
@@ -242,7 +233,7 @@ public class SVNChecker {
             repository.setAuthenticationManager(authManager);
             final ByteArrayOutputStream os = new ByteArrayOutputStream();
             final long num = repository.getFile(filePath, -1L, null, os);
-            final String aString = new String(os.toByteArray(), StandardCharsets.UTF_8);
+            final String aString = os.toString(StandardCharsets.UTF_8);
             return aString;
         } catch (Exception e) {
             log.debug("Error getting file." + e);
