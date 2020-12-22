@@ -30,7 +30,7 @@ public class GitManagerImpl implements VersionControlRepository {
 
             git.commit()
                     .setAll(true)
-                    .setMessage("Versioned files released")
+                    .setMessage("Versioned files released [skip ci]")
                     .call();
 
             git.push()
