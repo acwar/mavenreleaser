@@ -40,12 +40,15 @@ import java.util.Properties;
  */
 @Service
 public class MavenServiceImpl implements MavenService {
-    private Logger log = LoggerFactory.getLogger(MavenServiceImpl.class);
+    private final Logger log = LoggerFactory.getLogger(MavenServiceImpl.class);
 
     public static final String SNAPSHOT_LITERAL = "-SNAPSHOT";
     public static final String USERNAME_LITERAL = "username";
     public static final String PASS_LITERAL = "password";
 
+
+    @Value("${pelliMode:nonActive}")
+    private String pelliMode;
 
     @Value("${maven.home}")
     private String mavenHome;
@@ -104,8 +107,13 @@ public class MavenServiceImpl implements MavenService {
 
         if (hasCurrentVersionIndicated(nextVersion)){
             String[] tempVersion = splitPossibleVersionPair(nextVersion);
-            nextVersion = tempVersion[0];
-            artefactNextVersion.setCurrentVersion(tempVersion[1]);
+            if ("nonActive".equals(pelliMode)) {
+                nextVersion = tempVersion[1];
+                artefactNextVersion.setCurrentVersion(tempVersion[0]);
+            }else {
+                nextVersion = tempVersion[0];
+                artefactNextVersion.setCurrentVersion(tempVersion[1]);
+            }
             artefactNextVersion.setOverrideCurrentVersion(true);
         }
         if (nextVersion.equals("")) {

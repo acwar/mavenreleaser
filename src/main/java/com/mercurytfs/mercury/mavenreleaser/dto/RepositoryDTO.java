@@ -1,6 +1,8 @@
 package com.mercurytfs.mercury.mavenreleaser.dto;
 
 import com.mercurytfs.mercury.mavenreleaser.enums.RepositoryTypeEnum;
+import lombok.Getter;
+import lombok.Setter;
 
 public class RepositoryDTO {
 
@@ -9,6 +11,8 @@ public class RepositoryDTO {
     private String remotePath;
     private String localPath;
     private RepositoryTypeEnum repositoryType;
+    @Getter @Setter
+	private String branchName;
     
 	public String getUserName() {
 		return userName;

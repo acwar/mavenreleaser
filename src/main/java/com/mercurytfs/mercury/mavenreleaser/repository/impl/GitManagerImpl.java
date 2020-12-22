@@ -1,9 +1,9 @@
 package com.mercurytfs.mercury.mavenreleaser.repository.impl;
 
 
-import com.mercurytfs.mercury.mavenreleaser.repository.VersionControlRepository;
 import com.mercurytfs.mercury.mavenreleaser.dto.RepositoryDTO;
 import com.mercurytfs.mercury.mavenreleaser.exception.ReleaserException;
+import com.mercurytfs.mercury.mavenreleaser.repository.VersionControlRepository;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.transport.CredentialsProvider;
@@ -47,12 +47,17 @@ public class GitManagerImpl implements VersionControlRepository {
     public boolean downloadProject(RepositoryDTO repositoryDTO, File target) throws ReleaserException {
         try {
             CredentialsProvider cp = new UsernamePasswordCredentialsProvider(repositoryDTO.getUserName(), repositoryDTO.getPassword());
-
-            Git.cloneRepository()
+            LOGGER.info("BranchName:" + repositoryDTO.getBranchName());
+            Git repo = Git.cloneRepository()
                     .setCredentialsProvider(cp)
+                    .setBranch(repositoryDTO.getBranchName())
                     .setURI(repositoryDTO.getRemotePath())
                     .setDirectory(new File(target.getPath()))
                     .call();
+
+            if (repo.branchList().call().size()<=0)
+                throw new ReleaserException("Error cloning repository. Branch " + repositoryDTO.getBranchName() + " does not exist", null);
+
             LOGGER.info("Artifact downloaded from GIT");
             return true;
         } catch (GitAPIException e) {

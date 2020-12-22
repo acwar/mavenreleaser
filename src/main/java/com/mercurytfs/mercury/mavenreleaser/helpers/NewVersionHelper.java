@@ -33,8 +33,24 @@ public class NewVersionHelper {
         log.debug("-->getNextVersion");
         String nextVersion = "";
         log.debug("Current Version: " + version);
-        log.debug("BranchName: " + branchName);
-        try {
+
+        version = version.replace("-SNAPSHOT","");
+        if (isValidVersion(version)){
+            String[] versions = version.split("\\.");
+            Integer majorVersion = Integer.valueOf(versions[0]);
+            Integer middleVersion = Integer.valueOf(versions[1]);
+            Integer minorVersion = Integer.valueOf(versions[2]);
+
+            if (minorVersion>0){
+                log.debug("Minor version advanced");
+                minorVersion++;
+            }else {
+                log.debug("Middle version advanced");
+                middleVersion++;
+            }
+            nextVersion = majorVersion.toString()+"."+middleVersion.toString()+"."+minorVersion.toString();
+        }
+        /*try {
             if (version.endsWith(SNAPSHOT_LITERAL)) {
                 int snapshotPosition = version.indexOf(SNAPSHOT_LITERAL);
                 version = version.substring(0, snapshotPosition);
@@ -73,6 +89,8 @@ public class NewVersionHelper {
             log.info("The Next Version could not be discover automatically");
             nextVersion = "";
         }
+        */
+
         if (!nextVersion.equals("")) {
             nextVersion = nextVersion + SNAPSHOT_LITERAL;
         }
@@ -82,6 +100,9 @@ public class NewVersionHelper {
         return nextVersion;
     }
 
+    private static boolean isValidVersion(String possiblePair){
+        return possiblePair.matches("[0-9]+\\.[0-9]+\\.[0-9]+");
+    }
     private static String incrementMiddle(final String version) {
         log.debug("-->getNextVersion");
         String newVersion = "";
