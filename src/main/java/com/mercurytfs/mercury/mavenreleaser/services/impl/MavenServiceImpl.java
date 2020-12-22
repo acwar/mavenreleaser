@@ -72,7 +72,7 @@ public class MavenServiceImpl implements MavenService {
         final Properties properties = new Properties();
         properties.put(USERNAME_LITERAL, user);
         properties.put(PASS_LITERAL, pass);
-        properties.put("arguments", "-DskipTests -Dmaven.javadoc.skip=true -U ");
+        properties.put("arguments", "-DskipTests -Dmaven.javadoc.skip=true -U");
         properties.put("developmentVersion", artefactNextVersion.getNextVersion());
 
         if (artefactNextVersion.isOverrideCurrentVersion())
@@ -107,13 +107,8 @@ public class MavenServiceImpl implements MavenService {
 
         if (hasCurrentVersionIndicated(nextVersion)){
             String[] tempVersion = splitPossibleVersionPair(nextVersion);
-            if ("nonActive".equals(pelliMode)) {
-                nextVersion = tempVersion[1];
-                artefactNextVersion.setCurrentVersion(tempVersion[0]);
-            }else {
-                nextVersion = tempVersion[0];
-                artefactNextVersion.setCurrentVersion(tempVersion[1]);
-            }
+            nextVersion = tempVersion[0];
+            artefactNextVersion.setCurrentVersion(tempVersion[1]);
             artefactNextVersion.setOverrideCurrentVersion(true);
         }
         if (nextVersion.equals("")) {
