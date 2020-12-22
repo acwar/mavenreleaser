@@ -1,9 +1,8 @@
 package com.mercurytfs.mercury.mavenreleaser.helpers;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-
+import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtifact;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -15,28 +14,36 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtifact;
-
-import lombok.Getter;
-import lombok.Setter;
+import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 
 @Component
 public class ArtifactoryHelper {
-    private Logger log = LoggerFactory.getLogger( this.getClass());
+    private final Logger log = LoggerFactory.getLogger( this.getClass());
 
     
     @Value("${repository.snapshot.main}")
-    private String repoSnapshot1;
-    
-    @Value("${repository.snapshot.sanesp}")
-    private String repoSnapshot2;
-
+    private String mainSnapshotsRepo;
+    @Value("${repository.snapshot.trunk}")
+    private String mainTrunkSnapshotsRepo;
     @Value("${repository.release.main}")
-    private String repoRelease1;
+    private String mainReleasesRepo;
+    private String[] snapshotsRepos;
 
-    @Value("${repository.release.sanesp}")
-    private String repoRelease2;
+    @Value("${repository.snapshot.project}")
+    private String projectTrunkSnapshotRepo;
+    @Value("${repository.release.project}")
+    private String projectReleaseRepo;
+    private String[] releaseRepos;
 
+
+    @PostConstruct
+    private void construct(){
+        snapshotsRepos = new String[]{mainSnapshotsRepo, mainTrunkSnapshotsRepo, projectTrunkSnapshotRepo};
+        releaseRepos = new String[]{mainReleasesRepo, projectReleaseRepo};
+    }
 
     @Setter @Getter
     private ReleaseArtifact releaseArtifact;
@@ -50,11 +57,12 @@ public class ArtifactoryHelper {
 
     private Model getArtifactFromArtifactory(final String groupId, final String artifactId, final String version, final boolean release) throws IOException, XmlPullParserException {
     	
-    	log.debug("Using repositories: " + ((release) ? repoRelease1 + " and " + repoRelease2:repoSnapshot1 + " and " + repoSnapshot2));
+    	log.debug("Using repositories: " + ((release) ? mainReleasesRepo + " and " + projectReleaseRepo : mainSnapshotsRepo + " and " + mainTrunkSnapshotsRepo));
     	
     	Model model = null;
         Artifactory artifactory = getArtifactoryClient();
-        final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, (release) ? repoRelease1 : repoSnapshot1, (release) ? repoRelease2 : repoSnapshot2);
+        //final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, (release) ? repoRelease1 : repoSnapshot1, (release) ? repoRelease2 : repoSnapshot2);
+        final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, release);
         String itemPath = "";
         InputStream iStream = null;
         if (results != null) {
@@ -81,7 +89,8 @@ public class ArtifactoryHelper {
     public InputStream getArtifactSourceArtifactory(final String groupId, final String artifactId, final String version, final boolean release){
         Artifactory artifactory = getArtifactoryClient();
 
-        final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, (release) ? repoRelease1 : repoSnapshot1, (release) ? repoRelease2 : repoSnapshot2);
+        //final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, (release) ? repoRelease1 : repoSnapshot1, (release) ? repoRelease2 : repoSnapshot2);
+        final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, release);
         String itemPath = "";
         InputStream iStream = null;
         if (results != null) {
@@ -99,10 +108,14 @@ public class ArtifactoryHelper {
         return iStream;
     }
 
-    private List<RepoPath> getResults(String groupId, String artifactId, String version, Artifactory artifactory, String s, String s2) {
-        return artifactory.searches().artifactsByGavc().groupId(groupId).artifactId(artifactId).version(version).repositories(new String[]{s, s2}).doSearch();
+    private List<RepoPath> getResults(String groupId, String artifactId, String version, Artifactory artifactory, boolean release) {
+        return artifactory.searches().artifactsByGavc().groupId(groupId).artifactId(artifactId).version(version).repositories((release) ? releaseRepos:snapshotsRepos).doSearch();
     }
-	public ReleaseArtifact getReleaseArtifact() {
+
+    private List<RepoPath> getResults(String groupId, String artifactId, String version, Artifactory artifactory, String s, String s2) {
+        return artifactory.searches().artifactsByGavc().groupId(groupId).artifactId(artifactId).version(version).repositories(s, s2).doSearch();
+    }
+    public ReleaseArtifact getReleaseArtifact() {
 		return releaseArtifact;
 	}
 	public void setReleaseArtifact(ReleaseArtifact releaseArtifact) {
