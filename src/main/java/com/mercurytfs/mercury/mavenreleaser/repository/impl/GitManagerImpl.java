@@ -47,7 +47,7 @@ public class GitManagerImpl implements VersionControlRepository {
     public boolean downloadProject(RepositoryDTO repositoryDTO, File target) throws ReleaserException {
         try {
             CredentialsProvider cp = new UsernamePasswordCredentialsProvider(repositoryDTO.getUserName(), repositoryDTO.getPassword());
-
+            LOGGER.info("BranchName:" + repositoryDTO.getBranchName());
             Git repo = Git.cloneRepository()
                     .setCredentialsProvider(cp)
                     .setBranch(repositoryDTO.getBranchName())
