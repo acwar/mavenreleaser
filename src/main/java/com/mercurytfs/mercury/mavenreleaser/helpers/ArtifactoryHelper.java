@@ -83,7 +83,7 @@ public class ArtifactoryHelper {
     }
 
     private Artifactory getArtifactoryClient() {
-        return ArtifactoryClient.create("http://192.168.10.2:8081/artifactory/", getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());
+        return ArtifactoryClient.create("http://192.168.10.9:8082/artifactory/", getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());
     }
 
     public InputStream getArtifactSourceArtifactory(final String groupId, final String artifactId, final String version, final boolean release){
