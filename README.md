@@ -48,6 +48,8 @@ $ java -Dgit.branch=MIBRANCH -jar mavenreleaser-4......
 Dentro de este paquete se encuenta la clase de utilidad SVNChecker que comprueba la correccion de la metodologia aplciada 
 a los commit en SVN y su contrapartida en JIRA con sus enlaces a tareas tipo _Artefacto Maven_
 
+> /!\ Maven releaser requiere de JAVA 8, **NO ES COMPATIBLE** con Java 11
+
 ## Configuracion
 Para su configuracion se usa el fichero __config.properties__ por defecto incluido en este paquete, aunqe se puede indicar
 por parametros de la maquina virtual una ruta alternativa __-Dconfigfile.path=__[ruta fichero].
