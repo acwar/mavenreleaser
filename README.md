@@ -22,7 +22,6 @@ Indica que la siguiente version será la 1.10.0 y que el pom que está procesand
 
 
 ## Uso Maven Releaser
-> Es requisito _sine qua non_ lanzar Maven Releaser con Java 8. **No es compatible** con Java 11
 
 Para lanzarlo se debe ejecutar como _jar_ en un sistema en que se tenga correctamente configurado la invacion de Maven (esto es, con un settings.xml que se conozca es correcto)
 ```sh
@@ -50,3 +49,6 @@ $ java -Dgit.branch=MIBRANCH -jar mavenreleaser-4......
  - Los repos internos de artifactory comunes se definenen mediante *repository.release.main*, *repository.snapshot.main* y *repository.snapshot.trunk* (por defecto apuntan a *libs-release-local*, *libs-snapshot-local* y *libs-trunk-snapshots-local*)
  - Los repos internos de artifactory especificos de proyecto se definenen mediante *repository.release.project*, *repository.snapshot.project* (por defecto apuntan a *santander-gts-libs-release-local* y *santander-gts-libs-trunk-local*)
   
+# Consideraciones 
+ - **No es compatible** con Java 11. Es requisito _sine qua non_ lanzar Maven Releaser con Java 8
+ - Este proyecto requiere de soporte [Lombok](https://projectlombok.org/setup/eclipse) si se quiere importar a un IDE
