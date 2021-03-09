@@ -1,15 +1,15 @@
 package com.mercurytfs.mercury.mavenreleaser.services.impl;
 
+import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtefactResult;
 import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtifact;
 import com.mercurytfs.mercury.mavenreleaser.dto.ArtifactVersion;
+import com.mercurytfs.mercury.mavenreleaser.enums.ReleaseAction;
 import com.mercurytfs.mercury.mavenreleaser.exception.ReleaserException;
 import com.mercurytfs.mercury.mavenreleaser.helpers.ArtifactoryHelper;
-import lombok.Getter;
-import com.mercurytfs.mercury.mavenreleaser.beans.ReleaseArtefactResult;
-import com.mercurytfs.mercury.mavenreleaser.enums.ReleaseAction;
 import com.mercurytfs.mercury.mavenreleaser.services.MavenService;
 import com.mercurytfs.mercury.mavenreleaser.services.PomExplorerService;
 import com.mercurytfs.mercury.mavenreleaser.services.SCMMediator;
+import lombok.Getter;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Scm;
@@ -61,7 +61,7 @@ public class PomExplorerServiceImpl implements PomExplorerService {
     private String tempDir;
 
     @Getter
-    private Logger log = LoggerFactory.getLogger(PomExplorerServiceImpl.class);
+    private final Logger log = LoggerFactory.getLogger(PomExplorerServiceImpl.class);
 
     private ReleaseArtifact releaseArtifact;
 
@@ -88,7 +88,9 @@ public class PomExplorerServiceImpl implements PomExplorerService {
         log.info("--> ######## Processing Started for Artefact " + artefactName);
 
         scmMediator.downloadProject(url, new File(path));
-        result.addAll(processPom(path + POM_XML_LITERAL));
+
+        String parentFile = path + POM_XML_LITERAL;
+        result.addAll(processPom(parentFile,parentFile));
 
         if (isRelease()) {
             log.info("Maven Release for " + getArtifactInfo(path + POM_XML_LITERAL));
@@ -99,7 +101,7 @@ public class PomExplorerServiceImpl implements PomExplorerService {
         return result;
     }
 
-    private ReleaseArtefactResult processPom(String file) throws IOException, XmlPullParserException, MavenInvocationException, ReleaserException {
+    private ReleaseArtefactResult processPom(String file, String parentFile) throws IOException, XmlPullParserException, MavenInvocationException, ReleaserException {
         log.debug(PROCESSING_POM_INPUT + file);
         ReleaseArtefactResult result = new ReleaseArtefactResult();
         final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
@@ -110,37 +112,49 @@ public class PomExplorerServiceImpl implements PomExplorerService {
             return result;
         }
 
-        final List<Dependency> deps = model.getDependencies();
-        log.debug(PROCESSING_DEPENDENCIES);
-        String artefact;
-        for (Dependency d : deps) {
-            artefact = d.getGroupId() + "." + d.getArtifactId() + "." + d.getVersion();
-            if (d.getVersion()!=null && d.getVersion().endsWith("SNAPSHOT"))
-                if (processedSnapshots.getArtefacts().containsKey(artefact) && !isRelease())
-                    log.debug("Artifact "+ artefact +" already processed");
-                else
-                    result.addAll(processSnapshotDependency(artefact, d));
-            else
-                log.debug(artefact + " is a release, skiping");
-        }
+        if ("pom".equals(model.getPackaging())) {
+            log.debug("Proccessing a parent module");
+            //1º If there are some modules, those have to be processed first
+            for (String module : model.getModules()) {
+                log.debug("Founded module " + module);
+                if (!module.endsWith("/"))
+                    module = module + "/";
 
-        if (isRelease()){
-            writeModel(pomfile,model);
-            scmMediator.commitFile(extractSCMUrl(model.getScm()),pomfile);
+                result.addAll(processPom(file.replace("pom.xml", "") + module + "pom.xml",parentFile));
+            }
+        }else {
+            final List<Dependency> deps = model.getDependencies();
+            log.debug(PROCESSING_DEPENDENCIES);
+            String artefact;
+            for (Dependency d : deps) {
+                artefact = d.getGroupId() + "." + d.getArtifactId() + "." + d.getVersion();
+                if (d.getVersion() != null && d.getVersion().endsWith("SNAPSHOT"))
+                    if (processedSnapshots.getArtefacts().containsKey(artefact) && !isRelease())
+                        log.debug("Artifact " + artefact + " already processed");
+                    else
+                        result.addAll(processSnapshotDependency(artefact, d, parentFile));
+                else
+                    log.debug(artefact + " is a release, skiping");
+            }
+
+            if (isRelease()) {
+                writeModel(pomfile, model);
+                scmMediator.commitFile(extractSCMUrl(model.getScm()), new File(parentFile));
+            }
         }
         log.debug(PROCESSING_POM_OUTPUT + file);
         return  result;
     }
-    private ReleaseArtefactResult processSnapshotDependency(String artefact, Dependency d) throws IOException, XmlPullParserException, ReleaserException, MavenInvocationException {
+    private ReleaseArtefactResult processSnapshotDependency(String artefact, Dependency dependency,String parentFile) throws IOException, XmlPullParserException, ReleaserException, MavenInvocationException {
 
         Model pom;
         ReleaseArtefactResult result = new ReleaseArtefactResult();
 
         log.debug(artefact + " is in SNAPSHOT, processing...");
         log.debug("\tCheck in artifactoy if the release version of " + artefact + ALREADY_EXISTS);
-        if (artifactoryHelper.getReleasedArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion().substring(0, d.getVersion().indexOf(SNAPSHOT_LITERAL))) != null) {
+        if (artifactoryHelper.getReleasedArtifactFromArtifactory(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion().substring(0, dependency.getVersion().indexOf(SNAPSHOT_LITERAL))) != null) {
             log.debug(artefact + "\t in snapshot in the pom.xml but is already released");
-            d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf(SNAPSHOT_LITERAL)));
+            dependency.setVersion(dependency.getVersion().substring(0, dependency.getVersion().indexOf(SNAPSHOT_LITERAL)));
             if (!result.getArtefactsAlreadyReleased().containsKey(artefact))
                 result.getArtefactsAlreadyReleased().put(artefact, artefact);
             else
@@ -149,9 +163,9 @@ public class PomExplorerServiceImpl implements PomExplorerService {
             return result;
         }
         log.debug("\tArtifact release not found in artifactory");
-        if ((pom = artifactoryHelper.getSnapshotArtifactFromArtifactory(d.getGroupId(), d.getArtifactId(), d.getVersion())) != null) {
-            downloadAndProcess(extractSCMUrl(pom.getScm()), String.valueOf(d.getArtifactId()));
-            d.setVersion(d.getVersion().substring(0, d.getVersion().indexOf(SNAPSHOT_LITERAL)));
+        if ((pom = artifactoryHelper.getSnapshotArtifactFromArtifactory(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion())) != null && !isAlreadyProcessing(pom, parentFile)) {
+            downloadAndProcess(extractSCMUrl(pom.getScm()), String.valueOf(dependency.getArtifactId()));
+            dependency.setVersion(dependency.getVersion().substring(0, dependency.getVersion().indexOf(SNAPSHOT_LITERAL)));
             if (!result.getArtefacts().containsKey(artefact)) {
                 result.getArtefactsVersions().put(artefact,new ArtifactVersion(pom.getGroupId(), pom.getArtifactId(), pom.getVersion(),extractSCMUrl(pom.getScm())));
                 result.getArtefacts().put(artefact, artefact);
@@ -159,7 +173,7 @@ public class PomExplorerServiceImpl implements PomExplorerService {
             else
                 log.warn(ARTEFACT_IS_ALREADY_IN_THE_MAP + artefact);
         } else {
-            log.error("Artifact not found at repository");
+            log.error("Artifact not found at repository or already processing");
             if (!result.getArtefactsNotInArtifactory().containsKey(artefact))
                 result.getArtefactsNotInArtifactory().put(artefact, artefact);
             else
@@ -167,6 +181,21 @@ public class PomExplorerServiceImpl implements PomExplorerService {
         }
         processedSnapshots.addAll(result);
         return result;
+    }
+
+    private boolean isAlreadyProcessing(Model pom, String parentFile) throws ReleaserException {
+        try {
+            MavenXpp3Reader mavenreader = new MavenXpp3Reader();
+            Model model = mavenreader.read(new FileReader(new File(parentFile)));
+            log.debug("Processing " + extractSCMUrl(pom.getScm()) + " inside " + extractSCMUrl(model.getScm()) + " context");
+            return extractSCMUrl(pom.getScm()).equals(extractSCMUrl(model.getScm()));
+        } catch (IOException e) {
+            log.error("Unable to check if already processing. Loop can be ocurring");
+        } catch (XmlPullParserException e) {
+            log.error("Unable to check if already processing. Loop can be ocurring");
+        }
+        return false;
+
     }
 
     private String extractSCMUrl(Scm scm) throws ReleaserException {
