@@ -1,4 +1,8 @@
 # MercuryTFS Maven Releaser
+
+## Version
+[![Version](http://192.168.10.2:8081/artifactory/libs-release-local/com/mercurytfs/mercury/mavenreleaser/4.7.2/mavenreleaser-4.7.2.jar)](https://badgen.net/badge/MavenRelease/4.7.2/green?icon=maven)
+
 ## Visión general
 Maven Releaser es una herramienta opensource desarrollada por empleados de Mercury en su tiempo libre para cubrir la necesidad de liberaciones rapidas de todas la maraña de dependencias que se desprenden de los proyectos Maven.
 
