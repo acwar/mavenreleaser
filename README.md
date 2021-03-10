@@ -1,4 +1,7 @@
 # MercuryTFS Maven Releaser
+
+[![Version](https://badgen.net/badge/MavenRelease/4.7.2/green?icon=maven)](http://192.168.10.2:8081/artifactory/libs-release-local/com/mercurytfs/mercury/mavenreleaser/4.7.2/mavenreleaser-4.7.2.jar)
+
 ## Visión general
 Maven Releaser es una herramienta opensource desarrollada por empleados de Mercury en su tiempo libre para cubrir la necesidad de liberaciones rapidas de todas la maraña de dependencias que se desprenden de los proyectos Maven.
 
@@ -8,8 +11,8 @@ También permite verificar los commits que se hacen a svn o git para que el codi
 
 ## Fucionamiento general liberación
 Una vez invocado, se explora el _pom.xml_ del proyecto indicado en busca de dependencias que se encuentren subfijadas con el apellido _SNAPSHOT_. 
-Para cada una de estas que se encuentren se busca dicho artefacto en el repositorio de MercuryTFS ([artifactory](http://192.168.10.2:8081/artifactory/webapp/login.html?0)) en lo repositorios de versiones cerradas en busca de una version liberada: 
-- De no encontrarse se trata de buscar una version en el repositorio de versiones SNAPSHOT
+Para cada una de estas que se encuentren se busca dicho artefacto en el repositorio de MercuryTFS ([artifactory](http://192.168.10.9:8082/artifactory/webapp/login.html?0)) en lo repositorios de versiones cerradas (tanto **comun** como de **proyecto**) en busca de una version liberada: 
+- De no encontrarse se trata de buscar una version en el repositorio de versiones SNAPSHOT (tanto **comun** como de **proyecto**)
   - De encontrarse en el repositorio de _SNAPSHOTS_ de Artifactory, se descarga y analiza de la misma manera que al padre que lo encontró
   - De no encontrarse en el repo _SNAPSHOTS_ se le supone una dependencia externa y se le obvia.
 - De encontrarse se actualiza el pom eliminando el sufijo _SNAPSHOT_ en tanto se entiende no procede.
@@ -22,6 +25,7 @@ Indica que la siguiente version será la 1.10.0 y que el pom que está procesand
 
 
 ## Uso Maven Releaser
+
 Para lanzarlo se debe ejecutar como _jar_ en un sistema en que se tenga correctamente configurado la invacion de Maven (esto es, con un settings.xml que se conozca es correcto)
 ```sh
 $ java -jar mavenreleaser-4.0.0.jar --username aUser --url http://gitlab.mercurytfs.com/aMightyArtifact -- artefactName aMightyArtifact --action prepare
@@ -36,80 +40,18 @@ A mayores de estas se puede indicar como parámetros opcionales
 - __password__ La contraseña del usuario indicado, útil para labores de autimatizacion
 - __jira__ Jira asociado al artefacto para el tratamiento del flujo operativo
 
+### Config avanzada
+
 Se pueden indicar algunas de las variables de configuracion por linea de comando con argumentos -D en la invocacion.
 
-Los repositorios GIT se indicar el branch a usar en lugar de master con la propiedad *git.branch* desde la version 4.3.4 en adelante
-
+ - Los repositorios GIT se le puede indicar el branch a usar en lugar de master con la propiedad *git.branch* (desde la version 4.3.4). 
 ```sh
 $ java -Dgit.branch=MIBRANCH -jar mavenreleaser-4......
 ```
-
-# MercuryTFS SVNChecker
-Dentro de este paquete se encuenta la clase de utilidad SVNChecker que comprueba la correccion de la metodologia aplciada 
-a los commit en SVN y su contrapartida en JIRA con sus enlaces a tareas tipo _Artefacto Maven_
-
-## Configuracion
-Para su configuracion se usa el fichero __config.properties__ por defecto incluido en este paquete, aunqe se puede indicar
-por parametros de la maquina virtual una ruta alternativa __-Dconfigfile.path=__[ruta fichero].
-
-Las propiedades que debe contener minimas dicho fichero son
-- __notcheck.token__=#NOTCHECK
-- __jira.user__=admin1
-- __jira.password__=########
-- __projects.list__=MERCURY,BANORTE,PRUEB,IN....
-
-## Uso
-Se incluye una invocacion de ejemplo en el Hook *pre-commit* de SVN actualmente en uso (192.168.10.2:/var/lib/svn/mercury/hooks)
-
-```
-#!/bin/sh
-
-REPOS="$1"
-TXN="$2"
-
-SVNLOOK=/usr/bin/svnlook
-JAVA=/opt/mavenreleaser/mavenreleaser-4.3.3.jar
-CAMBIOS=`$SVNLOOK changed -t $TXN $REPOS`
-COMMIT_MESSAGE=`$SVNLOOK log -t $TXN $REPOS` 
-USER=`$SVNLOOK author -t $TXN $REPOS`
-i=1
-for aux in $CAMBIOS
-do
+ - Las direcciones de los repositorios de Artifactory se indican con las propiedades *repository.url* y *repository.url.legacy*, actualmente apuntan a *http://192.168.10.9:8082/artifactory/* y *http://192.168.10.2:8081/artifactory/* respectivamente
+ - Los repos internos de artifactory comunes se definenen mediante *repository.release.main*, *repository.snapshot.main* y *repository.snapshot.trunk* (por defecto apuntan a *libs-release-local*, *libs-snapshot-local* y *libs-trunk-snapshots-local*)
+ - Los repos internos de artifactory especificos de proyecto se definenen mediante *repository.release.project*, *repository.snapshot.project* (por defecto apuntan a *santander-gts-libs-release-local* y *santander-gts-libs-trunk-local*)
   
-if [ `expr $i % 2` -eq 0 ]
-then
-    if [ $FICHEROS ]
-    then 
-    	FICHEROS="$FICHEROS;${aux}"
-    else
-        FICHEROS=${aux}
-    fi
-fi
-i=$((i+1))
-done
-java -cp $JAVA  -Dloader.main=com.mercurytfs.mercury.mavenreleaser.SVNChecker org.springframework.boot.loader.PropertiesLauncher $FICHEROS "$COMMIT_MESSAGE" $USER
-
-VALIDA=$?
-
-if [ "$VALIDA" -eq "1" ]
-then
-	echo "ERROR_WRONG_PARAMETERS" 1>&2
-
-elif [ "$VALIDA" -eq "2" ]
-then
-        echo "ERROR_COMMIT_MESSAGE_FORMAT" 1>&2
-
-elif [ "$VALIDA" -eq "3" ]
-then
-        echo "ERROR_SVN_FILE_HAS_NOT_OPEN_ARTEfACT_OR_DONT_EXIST" 1>&2
-elif [ "$VALIDA" -eq "4" ]
-then
-        echo "ERROR_SVN_FILE_ARTEFACT_IS_NOT_LINKED_WITH_COMMIT_ISSUE" 1>&2
-
-elif [ "$VALIDA" -eq "5" ]
-then
-        echo "ERROR_JIRA_ISSUE_IS_RESOLVED_CANNOT_COMMIT_TO_THIS_ISSUE" 1>&2
-fi
-
-exit $VALIDA
-```
+# Consideraciones 
+ - **No es compatible** con Java 11. Es requisito _sine qua non_ lanzar Maven Releaser con Java 8
+ - Este proyecto requiere de soporte [Lombok](https://projectlombok.org/setup/eclipse) si se quiere importar a un IDE

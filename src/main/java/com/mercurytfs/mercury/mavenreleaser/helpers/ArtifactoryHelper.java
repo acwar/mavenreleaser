@@ -23,6 +23,11 @@ import java.util.List;
 public class ArtifactoryHelper {
     private final Logger log = LoggerFactory.getLogger( this.getClass());
 
+
+    @Value("${repository.url:http://192.168.10.9:8082/artifactory/}")
+    private String artifactoryURL;
+    @Value("${repository.url.legacy:http://192.168.10.2:8081/artifactory/}")
+    private String artifactoryLegacyURL;
     
     @Value("${repository.snapshot.main}")
     private String mainSnapshotsRepo;
@@ -60,7 +65,7 @@ public class ArtifactoryHelper {
     	log.debug("Using repositories: " + ((release) ? mainReleasesRepo + " and " + projectReleaseRepo : mainSnapshotsRepo + " and " + mainTrunkSnapshotsRepo));
     	
     	Model model = null;
-        Artifactory artifactory = getArtifactoryClient();
+        Artifactory artifactory = (release)?getArtifactoryLegacyClient():getArtifactoryClient();
         //final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, (release) ? repoRelease1 : repoSnapshot1, (release) ? repoRelease2 : repoSnapshot2);
         final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, release);
         String itemPath = "";
@@ -83,8 +88,12 @@ public class ArtifactoryHelper {
     }
 
     private Artifactory getArtifactoryClient() {
-        return ArtifactoryClient.create("http://192.168.10.2:8081/artifactory/", getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());
+        return ArtifactoryClient.create(artifactoryURL, getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());
     }
+    private Artifactory getArtifactoryLegacyClient() {
+        return ArtifactoryClient.create(artifactoryLegacyURL, getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());
+    }
+
 
     public InputStream getArtifactSourceArtifactory(final String groupId, final String artifactId, final String version, final boolean release){
         Artifactory artifactory = getArtifactoryClient();
