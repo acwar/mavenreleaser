@@ -11,8 +11,7 @@ public class RepositoryDTO {
     private String remotePath;
     private String localPath;
     private RepositoryTypeEnum repositoryType;
-    @Getter @Setter
-	private String branchName;
+    private String branchName;
     
 	public String getUserName() {
 		return userName;
@@ -43,6 +42,12 @@ public class RepositoryDTO {
 	}
 	public void setRepositoryType(RepositoryTypeEnum repositoryType) {
 		this.repositoryType = repositoryType;
+	}
+	public String getBranchName() {
+		return branchName;
+	}
+	public void setBranchName(String branchName) {
+		this.branchName = branchName;
 	}
     
     
