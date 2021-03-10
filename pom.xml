@@ -9,7 +9,7 @@
   </parent>
   <groupId>com.mercurytfs.mercury</groupId>
   <artifactId>mavenreleaser</artifactId>
-  <version>4.7.3@4.7.2.RC-SNAPSHOT</version>
+  <version>4.7.3-SNAPSHOT</version>
   <name>mavenreleaser</name>
   <description>Demo project for Spring Boot</description>
   <scm>
