@@ -28,7 +28,9 @@ public class ArtifactoryHelper {
     private String artifactoryURL;
     @Value("${repository.url.legacy:http://192.168.10.2:8081/artifactory/}")
     private String artifactoryLegacyURL;
-    
+    @Value("useLegacy:false")
+    private boolean useLegacy;
+
     @Value("${repository.snapshot.main}")
     private String mainSnapshotsRepo;
     @Value("${repository.snapshot.trunk}")
@@ -46,6 +48,13 @@ public class ArtifactoryHelper {
 
     @PostConstruct
     private void construct(){
+
+        log.debug("Configured to use main repository:"+artifactoryURL);
+        if (useLegacy){
+            log.debug("Use of Legacy repositories active"+artifactoryLegacyURL);
+        }else
+            artifactoryLegacyURL = artifactoryURL;
+
         snapshotsRepos = new String[]{mainSnapshotsRepo, mainTrunkSnapshotsRepo, projectTrunkSnapshotRepo};
         releaseRepos = new String[]{mainReleasesRepo, projectReleaseRepo};
     }
@@ -66,7 +75,6 @@ public class ArtifactoryHelper {
     	
     	Model model = null;
         Artifactory artifactory = (release)?getArtifactoryLegacyClient():getArtifactoryClient();
-        //final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, (release) ? repoRelease1 : repoSnapshot1, (release) ? repoRelease2 : repoSnapshot2);
         final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, release);
         String itemPath = "";
         InputStream iStream = null;
