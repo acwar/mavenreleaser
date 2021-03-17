@@ -29,7 +29,7 @@ public class ArtifactoryHelper {
     @Value("${repository.url.legacy:http://192.168.10.2:8081/artifactory/}")
     private String artifactoryLegacyURL;
     @Value("useLegacy:false")
-    private boolean useLegacy;
+    private String useLegacy;
 
     @Value("${repository.snapshot.main}")
     private String mainSnapshotsRepo;
@@ -50,7 +50,7 @@ public class ArtifactoryHelper {
     private void construct(){
 
         log.debug("Configured to use main repository:"+artifactoryURL);
-        if (useLegacy){
+        if (Boolean.TRUE.equals(useLegacy)){
             log.debug("Use of Legacy repositories active"+artifactoryLegacyURL);
         }else
             artifactoryLegacyURL = artifactoryURL;
