@@ -29,7 +29,7 @@
 		<repository>
 			<id>central</id>
 			<name>mercuryArtifactory-releases</name>
-			<url>http://192.168.10.9:8082/artifactory/libs-release-local</url>
+			<url>http://192.168.10.9:8082/artifactory/santander-gts-libs-release-local</url>
 		</repository>
 		<snapshotRepository>
 			<id>snapshots</id>
