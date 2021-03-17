@@ -32,6 +32,6 @@ deploy_latest:
   script: 
     - mvn -Drevision=latest $MAVEN_CLI_OPTS clean deploy -U -Dmaven.test.skip=true
   only:
-    - development
+    - master
 
 
