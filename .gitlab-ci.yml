@@ -1,0 +1,37 @@
+image: harbor.mercury-tfs.com/santander-gts/maven:3-jdk-8
+
+variables:
+  MAVEN_CLI_OPTS: "-s /mavensettings/settings.xml --batch-mode"
+  MAVEN_OPTS: "-Dmaven.repo.local=/repository/$CI_COMMIT_REF_NAME"
+  SONAR_OPTS: "-Dsonar.branch.name=$CI_COMMIT_REF_NAME -Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300  -Dsonar.login=a6637fa8c0131b8a9bcf97fed18490c7e86fb359"
+
+cache:
+  paths:
+    - target/
+    
+build:
+  stage: build
+  tags:
+    - general
+  script: 
+    - mvn $MAVEN_CLI_OPTS clean install -U -Dmaven.test.skip=true
+    
+deploy:
+  stage: deploy
+  tags:
+    - general
+  script: 
+    - mvn $MAVEN_CLI_OPTS clean deploy -U -Dmaven.test.skip=true
+  only:
+    - master
+
+deploy_latest:
+  stage: deploy
+  tags:
+    - general
+  script: 
+    - mvn -Drevision=latest $MAVEN_CLI_OPTS clean deploy -U -Dmaven.test.skip=true
+  only:
+    - development
+
+
