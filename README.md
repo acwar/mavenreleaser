@@ -48,9 +48,14 @@ Se pueden indicar algunas de las variables de configuracion por linea de comando
 ```sh
 $ java -Dgit.branch=MIBRANCH -jar mavenreleaser-4......
 ```
- - Las direcciones de los repositorios de Artifactory se indican con las propiedades *repository.url* y *repository.url.legacy*, actualmente apuntan a *http://192.168.10.9:8082/artifactory/* y *http://192.168.10.2:8081/artifactory/* respectivamente
+ - Las direcciones de los repositorios de Artifactory se indican con las propiedades *repository.url* y *repository.url.legacy*, actualmente apuntan a *http://192.168.10.9:8082/artifactory/* y *http://192.168.10.2:8081/artifactory/* respectivamente. 
+ Opcionalmente, desde la versión 4.8.0, se puede indicar el parámetro *useLegacy=true* para activar el repositorio legacy.
+```sh
+$ java -DuseLegacy=true -jar mavenreleaser-4......
+```
  - Los repos internos de artifactory comunes se definenen mediante *repository.release.main*, *repository.snapshot.main* y *repository.snapshot.trunk* (por defecto apuntan a *libs-release-local*, *libs-snapshot-local* y *libs-trunk-snapshots-local*)
  - Los repos internos de artifactory especificos de proyecto se definenen mediante *repository.release.project*, *repository.snapshot.project* (por defecto apuntan a *santander-gts-libs-release-local* y *santander-gts-libs-trunk-local*)
+ - 
   
 # Consideraciones 
  - **No es compatible** con Java 11. Es requisito _sine qua non_ lanzar Maven Releaser con Java 8
