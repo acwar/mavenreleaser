@@ -50,6 +50,7 @@ public class ArtifactoryHelper {
     private void construct(){
 
         log.debug("Configured to use main repository:"+artifactoryURL);
+        log.debug("Checking legacy repositories:"+useLegacy);
         if (Boolean.TRUE.equals(useLegacy)){
             log.debug("Use of Legacy repositories active"+artifactoryLegacyURL);
         }else
