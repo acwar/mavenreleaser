@@ -72,7 +72,7 @@ public class MavenServiceImpl implements MavenService {
         final Properties properties = new Properties();
         properties.put(USERNAME_LITERAL, user);
         properties.put(PASS_LITERAL, pass);
-        properties.put("arguments", "-DskipTests -Dmaven.javadoc.skip=true -U");
+        properties.put("arguments", " -Dmaven.test.skip=true -Dmaven.javadoc.skip=true -U");
         properties.put("developmentVersion", artefactNextVersion.getNextVersion());
 
         if (artefactNextVersion.isOverrideCurrentVersion())
