@@ -45,12 +45,12 @@ A mayores de estas se puede indicar como parámetros opcionales
 Se pueden indicar algunas de las variables de configuracion por linea de comando con argumentos -D en la invocacion.
 
  - Los repositorios GIT se le puede indicar el branch a usar en lugar de master con la propiedad *git.branch* (desde la version 4.3.4). 
-```sh
+```
 $ java -Dgit.branch=MIBRANCH -jar mavenreleaser-4......
 ```
  - Las direcciones de los repositorios de Artifactory se indican con las propiedades *repository.url* y *repository.url.legacy*, actualmente apuntan a *http://192.168.10.9:8082/artifactory/* y *http://192.168.10.2:8081/artifactory/* respectivamente. 
  Opcionalmente, desde la versión 4.8.0, se puede indicar el parámetro *useLegacy=true* para activar el repositorio legacy.
-```sh
+```
 $ java -DuseLegacy=true -jar mavenreleaser-4......
 ```
  - Los repos internos de artifactory comunes se definenen mediante *repository.release.main*, *repository.snapshot.main* y *repository.snapshot.trunk* (por defecto apuntan a *libs-release-local*, *libs-snapshot-local* y *libs-trunk-snapshots-local*)
