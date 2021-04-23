@@ -28,7 +28,7 @@ public class ArtifactoryHelper {
     private String artifactoryURL;
     @Value("${repository.url.legacy:http://192.168.10.2:8081/artifactory/}")
     private String artifactoryLegacyURL;
-    @Value("useLegacy:false")
+    @Value("${useLegacy:false}")
     private String useLegacy;
 
     @Value("${repository.snapshot.main}")
