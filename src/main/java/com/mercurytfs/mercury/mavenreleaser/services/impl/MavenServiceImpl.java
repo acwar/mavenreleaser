@@ -53,6 +53,9 @@ public class MavenServiceImpl implements MavenService {
     @Value("${maven.home}")
     private String mavenHome;
 
+    @Value("${interactive:true}")
+    private boolean interactive;
+
     @Autowired
     private JiraHelper jiraHelper;
 
@@ -103,7 +106,10 @@ public class MavenServiceImpl implements MavenService {
         artefactNextVersion.setScm(artefact.getScmURL());
 
         String autoVersion = NewVersionHelper.getNextVersion(artefact.getVersion(), artefact.getScmURL());
-        String nextVersion = ConsoleHelper.getLineFromConsole("Type the new version (" + autoVersion + "): ");
+        String nextVersion ="";
+
+        if (Boolean.TRUE.equals(interactive))
+            ConsoleHelper.getLineFromConsole("Type the new version (" + autoVersion + "): ");
 
         if (hasCurrentVersionIndicated(nextVersion)){
             String[] tempVersion = splitPossibleVersionPair(nextVersion);
@@ -111,9 +117,9 @@ public class MavenServiceImpl implements MavenService {
             artefactNextVersion.setCurrentVersion(tempVersion[1]);
             artefactNextVersion.setOverrideCurrentVersion(true);
         }
-        if (nextVersion.equals("")) {
+        if (nextVersion.equals(""))
             nextVersion = autoVersion;
-        }
+
         if (!nextVersion.endsWith(SNAPSHOT_LITERAL)) {
             log.warn("Next Version has not -SNAPSHOT SUFFIX. Adding...");
             nextVersion = nextVersion + SNAPSHOT_LITERAL;
