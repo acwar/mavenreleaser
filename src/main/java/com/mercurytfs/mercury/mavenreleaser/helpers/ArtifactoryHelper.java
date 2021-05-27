@@ -7,7 +7,7 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.jfrog.artifactory.client.Artifactory;
-import org.jfrog.artifactory.client.ArtifactoryClient;
+import org.jfrog.artifactory.client.ArtifactoryClientBuilder;
 import org.jfrog.artifactory.client.model.RepoPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,17 +97,24 @@ public class ArtifactoryHelper {
     }
 
     private Artifactory getArtifactoryClient() {
-        return ArtifactoryClient.create(artifactoryURL, getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());
+        return ArtifactoryClientBuilder.create()
+                .setUrl(artifactoryURL)
+                .setUsername(getReleaseArtifact().getUsername())
+                .setPassword(getReleaseArtifact().getPassword())
+                .build();
     }
     private Artifactory getArtifactoryLegacyClient() {
-        return ArtifactoryClient.create(artifactoryLegacyURL, getReleaseArtifact().getUsername(), getReleaseArtifact().getPassword());
+        return ArtifactoryClientBuilder.create()
+                .setUrl(artifactoryLegacyURL)
+                .setUsername(getReleaseArtifact().getUsername())
+                .setPassword(getReleaseArtifact().getPassword())
+                .build();
     }
 
 
-    public InputStream getArtifactSourceArtifactory(final String groupId, final String artifactId, final String version, final boolean release){
+    public InputStream getArtifactSourceArtifactory(final String groupId, final String artifactId, final String version, final boolean release) throws IOException {
         Artifactory artifactory = getArtifactoryClient();
 
-        //final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, (release) ? repoRelease1 : repoSnapshot1, (release) ? repoRelease2 : repoSnapshot2);
         final List<RepoPath> results = getResults(groupId, artifactId, version, artifactory, release);
         String itemPath = "";
         InputStream iStream = null;
