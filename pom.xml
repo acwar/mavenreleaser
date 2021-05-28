@@ -13,7 +13,7 @@
 	<artifactId>mavenreleaser</artifactId>
 	<version>${revision}</version>
 	<properties>
-		<revision>4.8.0-SNAPSHOT</revision>
+		<revision>4.9.0-SNAPSHOT</revision>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
