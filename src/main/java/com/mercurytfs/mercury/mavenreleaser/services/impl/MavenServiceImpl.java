@@ -45,6 +45,7 @@ public class MavenServiceImpl implements MavenService {
     public static final String SNAPSHOT_LITERAL = "-SNAPSHOT";
     public static final String USERNAME_LITERAL = "username";
     public static final String PASS_LITERAL = "password";
+    public static final String DEFAULT = "DEFAULT";
 
 
     @Value("${pelliMode:nonActive}")
@@ -52,6 +53,8 @@ public class MavenServiceImpl implements MavenService {
 
     @Value("${maven.home}")
     private String mavenHome;
+    @Value("${java.home:DEFAULT}")
+    private String javaHome;
 
     @Value("${interactive:true}")
     private boolean interactive;
@@ -83,9 +86,13 @@ public class MavenServiceImpl implements MavenService {
 
         request.setProperties(properties);
 
+        if (!DEFAULT.equals(javaHome))
+            request.setJavaHome(new File(javaHome));
+
         final Invoker invoker = new DefaultInvoker();
         invoker.setInputStream(System.in);
         invoker.setMavenHome(new File(mavenHome));
+
         final InvocationResult result = invoker.execute(request);
         if (result.getExitCode() != 0) {
             throw new IllegalStateException("Build failed.");
