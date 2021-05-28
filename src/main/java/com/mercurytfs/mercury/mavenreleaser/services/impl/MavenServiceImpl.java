@@ -53,7 +53,7 @@ public class MavenServiceImpl implements MavenService {
 
     @Value("${maven.home}")
     private String mavenHome;
-    @Value("${java.home:DEFAULT}")
+    @Value("${maven.java.home:DEFAULT}")
     private String javaHome;
 
     @Value("${interactive:true}")
