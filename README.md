@@ -1,6 +1,7 @@
 # MercuryTFS Maven Releaser
 
 [![Version](https://badgen.net/badge/MavenRelease/Latest/green?icon=maven)](http://192.168.10.9:8082/artifactory/santander-gts-libs-release-local/com/mercurytfs/mercury/mavenreleaser/latest/mavenreleaser-latest.jar)
+
 [![Version](https://badgen.net/badge/MavenRelease/4.8.0/green?icon=maven](http://192.168.10.9:8082/artifactory/santander-gts-libs-release-local/com/mercurytfs/mercury/mavenreleaser/4.8.0/mavenreleaser-4.8.0.jar)
 
 ## Visión general
