@@ -24,7 +24,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Scanner;
 
 /**
  *
@@ -200,10 +203,44 @@ public class PomExplorerServiceImpl implements PomExplorerService {
 
     private String extractSCMUrl(Scm scm) throws ReleaserException {
         String svnURL = (scm.getDeveloperConnection()!=null)?scm.getDeveloperConnection():scm.getConnection();
-        if (svnURL==null)
+        if (svnURL==null) {
             throw new ReleaserException("SCM Info not provided in POM");
+        }
+        String urlFixed=svnURL.substring(svnURL.indexOf("http"));
+        try {
+            writeToReintegrate(urlFixed);
+        }catch (IOException e){
+            log.error("Error writing to reintegrate: "+urlFixed+"\nError: "+e.getCause());
+        }
+        return urlFixed;
+    }
 
-        return svnURL.substring(svnURL.indexOf("http"));
+    private void writeToReintegrate(String urlFixed) throws IOException {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String filename= simpleDateFormat.format(new Date())+"-RELEASE";
+        if(!containArtifact(urlFixed,filename)) {
+            FileWriter fw = new FileWriter(filename, true);
+            fw.write(urlFixed + "\n");
+            fw.close();
+        }
+    }
+
+    private boolean containArtifact(String url,String fileName) {
+        File myObj = new File(fileName);
+        Scanner myReader;
+        try{
+            myReader = new Scanner(myObj);
+        }catch (FileNotFoundException e){
+            return false;
+        }
+        while(myReader.hasNext()){
+            if(myReader.nextLine().contains(url)){
+                myReader.close();
+                return true;
+            }
+        }
+        myReader.close();
+        return false;
     }
 
     private String getArtifactInfo(final String file) {
