@@ -25,9 +25,10 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 
 @SpringBootApplication(exclude = {EmbeddedServletContainerAutoConfiguration.class, WebMvcAutoConfiguration.class})
@@ -38,6 +39,7 @@ public class Releaser implements CommandLineRunner {
     public static final String ARTEFACTOS_QUE_NO_ESTAN_EN_ARTIFACTORY_HACER_CLEAN_DEPLOY = "######################## Artefactos que no est\u00e1n en Artifactory (hacer clean deploy):  ###################";
     public static final String ARTEFACTOS_JIRAS_QUE_SE_PROCESARON_CORRECTAMENTE = "######################## Artefactos jiras que se procesaron correctamente  ####################################";
     public static final String ARTEFACTOS_JIRAS_QUE_NO_SE_PROCESARON_CORRECTAMENTE = "######################## Artefactos jiras que NO se procesaron correctamente  #################################";
+    public static final String ARTEFACTOS_PARA_REINTEGRAR = "######################## Artefactos que se tienen que reintegrar  #################################";
 
     @Getter
     private Logger log = LoggerFactory.getLogger(Releaser.class);
@@ -85,6 +87,7 @@ public class Releaser implements CommandLineRunner {
                     logArtifacts(ARTEFACTOS_QUE_NO_ESTAN_EN_ARTIFACTORY_HACER_CLEAN_DEPLOY, result.getArtefactsNotInArtifactory().keySet());
                     logArtifacts(ARTEFACTOS_JIRAS_QUE_SE_PROCESARON_CORRECTAMENTE, result.getJirasReleased().keySet());
                     logArtifacts(ARTEFACTOS_JIRAS_QUE_NO_SE_PROCESARON_CORRECTAMENTE, result.getJirasNotReleased().keySet());
+                    logArtifacts(ARTEFACTOS_PARA_REINTEGRAR,getArtifactsToReintegrate());
                     break;
                 case PREPARE:
                 case SOURCES:
@@ -99,6 +102,24 @@ public class Releaser implements CommandLineRunner {
             log.debug(e1.getMessage());
             e1.printStackTrace();
         }
+    }
+
+    private List<String> getArtifactsToReintegrate() {
+        List<String> artifacts = new ArrayList<>();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String filename= simpleDateFormat.format(new Date())+"-RELEASE";
+        File myObj = new File(filename);
+        Scanner myReader;
+        try{
+            myReader = new Scanner(myObj);
+        }catch (FileNotFoundException e){
+            return artifacts;
+        }
+        while(myReader.hasNext()){
+            artifacts.add(myReader.nextLine());
+        }
+        myReader.close();
+        return artifacts;
     }
 
     /**
